@@ -1,0 +1,146 @@
+{% extends 'blog/base.html' %}
+{% block title %}Магазин наград{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Изолируем стили, чтобы они работали только внутри магазина */
+    .kids-app-wrapper {
+        --bg-green-light: #e8f5e9;
+        --header-green: #aed581;
+        --text-main: #2c3e50;
+        --text-muted: #757575;
+        --white: #ffffff;
+        --btn-green: #aed581;
+
+        background-color: var(--bg-green-light);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto; /* Центрируем как мобильное приложение */
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        padding-bottom: 80px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .kids-app-wrapper .top-profile-bar {
+        background-color: var(--header-green);
+        padding: 40px 20px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .kids-app-wrapper .profile-info { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+    .kids-app-wrapper .avatar-mini { width: 35px; height: 35px; background-color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .kids-app-wrapper .balance { display: flex; align-items: center; gap: 5px; font-weight: 700; font-size: 20px; }
+
+    .kids-app-wrapper .coin {
+        color: #fbbc04; font-size: 16px; font-weight: bold;
+        background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%);
+        border-radius: 50%; width: 22px; height: 22px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .kids-app-wrapper .store-tabs { display: flex; background-color: var(--header-green); padding: 0 10px; }
+    .kids-app-wrapper .tab { flex: 1; text-align: center; padding: 15px 10px; font-weight: 700; font-size: 15px; border-radius: 12px 12px 0 0; cursor: pointer; }
+    .kids-app-wrapper .tab.active { background-color: var(--bg-green-light); color: var(--text-main); }
+    .kids-app-wrapper .tab.inactive { color: rgba(0,0,0,0.4); }
+
+    .kids-app-wrapper .products-grid { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .kids-app-wrapper .product-card { background-color: var(--white); border-radius: 16px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
+    .kids-app-wrapper .product-card:hover { transform: translateY(-3px); }
+
+    .kids-app-wrapper .product-img { width: 100%; height: 100px; background-color: #f5f5f5; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; font-size: 50px; }
+    .kids-app-wrapper .product-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; height: 35px; overflow: hidden; }
+    .kids-app-wrapper .product-price { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 10px; font-weight: bold;}
+
+    .kids-app-wrapper .buy-btn { background-color: var(--btn-green); color: var(--text-main); border: none; padding: 10px; border-radius: 8px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+    .kids-app-wrapper .buy-btn:hover { filter: brightness(0.95); }
+
+    .kids-app-wrapper .bottom-nav { position: absolute; bottom: 0; width: 100%; background-color: #7cb342; display: flex; justify-content: space-around; padding: 15px 20px 20px; border-radius: 20px 20px 0 0; z-index: 20; }
+    .kids-app-wrapper .nav-item { font-size: 26px; opacity: 0.5; cursor: pointer; text-decoration: none;}
+    .kids-app-wrapper .nav-item.active { opacity: 1; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+
+        <div class="top-profile-bar">
+            <div class="profile-info">
+                <div class="avatar-mini">👦🏽</div>
+                <span>{{ user.username }}</span>
+            </div>
+            <div class="balance" title="Мой баланс">
+                {{ profile.coins }} <div class="coin">★</div>
+            </div>
+        </div>
+
+        <div class="store-tabs">
+            <div class="tab inactive">Навыки</div>
+            <div class="tab active">Магазин наград</div>
+        </div>
+
+        <div class="products-grid">
+            {% for item in items %}
+            <div class="product-card">
+                <div class="product-img">
+                    {% if "bi-" in item.icon %}
+                        <i class="bi {{ item.icon }} text-success"></i>
+                    {% else %}
+                        {{ item.icon }} {% endif %}
+                </div>
+                <div class="product-title">{{ item.title }}</div>
+                <div class="product-price">
+                    Цена: {{ item.cost }} <span class="coin" style="width:16px;height:16px;font-size:10px;">★</span>
+                </div>
+                <button class="buy-btn do-buy-btn" data-id="{{ item.id }}" data-cost="{{ item.cost }}">Купить</button>
+            </div>
+            {% empty %}
+            <div class="text-center w-100 p-4" style="grid-column: 1 / -1;">
+                <p class="text-muted">Магазин пока пуст. Попроси папу добавить награды!</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <nav class="bottom-nav">
+            <a href="{% url 'reward_store' %}" class="nav-item active" title="Магазин">🧺</a>
+            <a href="{% url 'organizer' %}" class="nav-item" title="Задания">📋</a>
+            <a href="{% url 'dashboard' %}" class="nav-item" title="Профиль">👦🏻</a>
+        </nav>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.do-buy-btn').forEach(btn => {
+    btn.onclick = function() {
+        const cost = this.dataset.cost;
+        if(confirm(`Потратить ${cost} ★ на эту награду?`)) {
+
+            // Меняем текст кнопки для визуала
+            const originalText = this.innerText;
+            this.innerText = '⏳...';
+            this.disabled = true;
+
+            fetch(`/api/rewards/buy/${this.dataset.id}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}'}
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                if(data.status === 'ok') location.reload();
+                else {
+                    this.innerText = originalText;
+                    this.disabled = false;
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

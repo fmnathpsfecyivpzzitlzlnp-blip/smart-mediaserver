@@ -1,0 +1,88 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ tag.name }} - {{ learning_category.name }}{% endblock %}
+
+{% block page_header %}
+    <nav aria-label="breadcrumb" class="fs-6 mb-2">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'learning_root' %}" class="text-decoration-none text-muted">Обучение</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'learning_category_detail' learning_category.slug %}" class="text-decoration-none text-muted">{{ learning_category.name }}</a></li>
+        <li class="breadcrumb-item active text-white" aria-current="page">Тег: {{ tag.name }}</li>
+      </ol>
+    </nav>
+    <h2 class="text-white">{{ learning_category.name }} <span class="text-muted">/ {{ tag.name }}</span></h2>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card bg-dark border-secondary text-white shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-muted mb-3">Навигация</h5>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'learning_category_detail' learning_category.slug %}" class="btn btn-outline-light text-start">
+                        <i class="bi bi-arrow-left"></i> Все курсы категории
+                    </a>
+
+                    <div class="btn btn-primary text-start d-flex justify-content-between align-items-center active" style="pointer-events: none;">
+                        {{ tag.name }}
+                        <span class="badge bg-light text-dark rounded-pill">{{ courses.count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9">
+        <div class="row row-cols-1 row-cols-lg-2 g-4">
+            {% for course in courses %}
+            <div class="col">
+                <div class="card h-100 bg-dark border-secondary text-white shadow-sm hover-effect">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title text-primary mb-0">{{ course.title }}</h5>
+                            <span class="badge bg-secondary">{{ course.files.count }} уроков</span>
+                        </div>
+
+                        <p class="card-text text-muted small">
+                            {{ course.description|striptags|truncatechars:100|default:"Нет описания" }}
+                        </p>
+
+                        <div class="mb-3">
+                            {% for t in course.tags.all %}
+                                <span class="badge border border-secondary text-light" style="background-color: {{ t.color }};">
+                                    {{ t.name }}
+                                </span>
+                            {% endfor %}
+                        </div>
+
+                        <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary w-100 stretched-link">
+                            Перейти к курсу
+                        </a>
+                    </div>
+                    <div class="card-footer bg-transparent border-secondary text-muted small">
+                        Добавлен: {{ course.created_at|date:"d.m.Y" }}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info bg-dark border-secondary text-white">
+                    <i class="bi bi-info-circle me-2"></i>
+                    В этой категории с тегом <strong>{{ tag.name }}</strong> курсов пока нет.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-effect { transition: transform 0.2s, box-shadow 0.2s; }
+    .hover-effect:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
+        border-color: #0d6efd !important;
+    }
+</style>
+{% endblock %}

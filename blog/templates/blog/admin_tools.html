@@ -1,0 +1,203 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Центр управления Jarvis{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-cpu-fill me-2"></i>Центр управления</h2>
+        <button class="btn btn-danger" onclick="purgeTasks()">
+            <i class="bi bi-radioactive"></i> Очистить очередь задач
+        </button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+
+            <div class="card bg-dark border-secondary text-white mb-4 shadow-sm">
+                <div class="card-header border-secondary text-warning">
+                    <i class="bi bi-film me-2"></i>Сканер Видео (Фильмы)
+                </div>
+                <div class="card-body">
+                    <label class="form-label text-muted small">Тип контента:</label>
+                    <select class="form-select bg-secondary text-white border-0 mb-3" id="movieType">
+                        <option value="MOVIE">Фильмы (MOVIE)</option>
+                        <option value="CLIP">Клипы/Ролики (CLIP)</option>
+                        <option value="LESSON">Уроки (LESSON)</option>
+                    </select>
+
+                    <button class="btn btn-warning w-100" onclick="scanMovies()">
+                        <i class="bi bi-search"></i> Найти новые фильмы
+                    </button>
+                </div>
+            </div>
+
+            <div class="card bg-dark border-secondary text-white mb-4 shadow-sm">
+                <div class="card-header border-secondary text-info">
+                    <i class="bi bi-book me-2"></i>Сканер Курсов
+                </div>
+                <div class="card-body">
+                    <label class="form-label text-muted small">Путь (внутри Docker):</label>
+                    <input type="text" class="form-control bg-secondary text-white border-0 mb-3"
+                           id="coursesPath" value="/source_courses">
+
+                    <label class="form-label text-muted small">Куда загружать:</label>
+                    <select class="form-select bg-secondary text-white border-0 mb-3" id="courseCategory">
+                        <option value="0">📂 Создать "Новые загрузки" (Авто)</option>
+                        <option disabled>──────────</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <button class="btn btn-info w-100" onclick="scanCourses()">
+                        <i class="bi bi-folder-plus"></i> Сканировать курсы
+                    </button>
+                </div>
+            </div>
+
+            <div class="card bg-dark border-secondary text-white mb-4 shadow-sm">
+                <div class="card-header border-secondary text-primary">
+                    <i class="bi bi-collection-play me-2"></i>Сканер Сериалов
+                </div>
+                <div class="card-body">
+                    <label class="form-label text-muted small">Путь (внутри Docker):</label>
+                    <input type="text" class="form-control bg-secondary text-white border-0 mb-3"
+                           id="showsPath" value="/source_shows">
+
+                    <button class="btn btn-primary w-100" onclick="scanShows()">
+                        <i class="bi bi-tv"></i> Найти новые серии
+                    </button>
+                </div>
+            </div>
+            <div class="card bg-dark border-secondary text-white mb-4 shadow-sm">
+                <div class="card-header border-secondary text-success">
+                    <i class="bi bi-magic me-2"></i>Обслуживание
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-outline-success w-100 mb-2" onclick="runCommand('fix_extensions', [])">
+                        <i class="bi bi-file-earmark-code"></i> Починить иконки файлов
+                    </button>
+                    <button class="btn btn-outline-light w-100" onclick="runCommand('update_durations', [])">
+                        <i class="bi bi-clock-history"></i> Обновить длительность (0 сек)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-md-7">
+            <div class="card bg-black border-secondary text-white h-100 shadow-sm" style="min-height: 500px;">
+                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-terminal-fill me-2"></i>Терминал вывода (Live)</span>
+                    <span class="badge bg-secondary" id="statusBadge">Connected</span>
+                </div>
+                <div class="card-body font-monospace p-0">
+                    <div id="termOutput" class="p-3 text-success"
+                         style="height: 500px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; font-family: 'Consolas', 'Monaco', monospace;">
+                        <span class="text-muted">Connecting to Jarvis Core...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === 1. ЖИВОЕ ОБНОВЛЕНИЕ ЛОГОВ (Polling) ===
+    document.addEventListener('DOMContentLoaded', function() {
+        const termOutput = document.getElementById('termOutput');
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs/live/');
+                const data = await response.json();
+
+                if (data.logs && data.logs.length > 0) {
+                    termOutput.innerHTML = data.logs.join('<br>') + '<br><br><span class="text-warning blinking-cursor">admin@jarvis:~$ _</span>';
+                    termOutput.scrollTop = termOutput.scrollHeight;
+                }
+            } catch (error) {
+                console.error("Ошибка получения логов:", error);
+            }
+        }
+
+        setInterval(fetchLogs, 2000);
+        fetchLogs();
+    });
+
+    // === 2. ЗАПУСК КОМАНД ===
+    function runCommand(commandName, argsList) {
+        const badge = document.getElementById('statusBadge');
+        badge.className = 'badge bg-warning animate-pulse';
+        badge.innerText = 'Sending...';
+
+        fetch("{% url 'run_scanner_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                command: commandName,
+                args: argsList
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                badge.className = 'badge bg-success';
+                badge.innerText = 'Command Sent';
+            } else {
+                alert("Ошибка запуска: " + data.output);
+                badge.className = 'badge bg-danger';
+                badge.innerText = 'Error';
+            }
+        })
+        .catch(error => {
+            alert("Ошибка сети: " + error);
+            badge.className = 'badge bg-danger';
+            badge.innerText = 'Fail';
+        });
+    }
+
+    // === 3. ФУНКЦИИ-ОБЕРТКИ ДЛЯ КНОПОК ===
+    function scanMovies() {
+        const type = document.getElementById('movieType').value;
+        runCommand('scan_movies', ['--type', type]);
+    }
+
+    function scanCourses() {
+        const path = document.getElementById('coursesPath').value;
+        const catId = document.getElementById('courseCategory').value;
+        runCommand('scan_courses', ['--path', path, '--category_id', catId]);
+    }
+
+    // 👇 НОВАЯ ФУНКЦИЯ ДЛЯ СЕРИАЛОВ
+    function scanShows() {
+        const path = document.getElementById('showsPath').value;
+        runCommand('scan_shows', ['--path', path]); // Теперь передаем путь
+    }
+
+    function purgeTasks() {
+        if(!confirm("Удалить все зависшие задачи очереди?")) return;
+        fetch("{% url 'purge_tasks_api' %}", {
+             method: 'POST',
+             headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        }).then(() => alert("Очередь очищена."));
+    }
+</script>
+
+<style>
+    .animate-pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    .blinking-cursor {
+        animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+</style>
+{% endblock %}

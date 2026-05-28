@@ -1,0 +1,462 @@
+Понял вас! «gjndhb gj;fkeqcnf nfr;t cltkfq» — это «повтори пожалуйста также сделай» в английской раскладке.
+
+Вижу, что мы перешли от темного трекера ваших личных привычек к светлому приложению с детскими заданиями и наградами. Это отличный инструмент, чтобы в игровой форме организовать домашние дела и рутину для сына.
+
+Я собрал все задания из раздела «Настроить задания» в единый текстовый список, а ниже подготовил для вас HTML-шаблон этого интерфейса.
+
+Список всех детских заданий (для копирования):
+Собрать игрушки
+
+Заправить постель
+
+Почистить зубы
+
+Накрыть на стол
+
+Помыть посуду
+
+Вынести мусор
+
+Сделать зарядку
+
+Почитать книгу
+
+Посетить секцию
+
+Сделать поделку
+
+Позвонить бабушке
+
+Поиграть с младшим
+
+Получить хорошую оценку
+
+А вот готовый HTML-код экрана «Настроить задания». Как и раньше, я подобрал цвета (светло-синий фон, фиолетовые акценты, желтые монетки) и заменил картинки на подходящие эмодзи, чтобы код работал автономно в любом браузере.
+
+HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настроить задания</title>
+    <style>
+        :root {
+            --bg-light-blue: #e8f0fe;
+            --header-blue: #8b9dff;
+            --text-main: #2c3e50;
+            --text-muted: #5f6368;
+            --card-bg: #ffffff;
+            --btn-purple: #8b9dff;
+            --coin-yellow: #fbbc04;
+            --num-bg: #e8f0fe;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light-blue);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Верхняя панель вкладок */
+        .top-tabs {
+            background-color: var(--header-blue);
+            display: flex;
+            padding-top: 40px; /* Отступ под статус-бар */
+            padding-left: 20px;
+            gap: 10px;
+        }
+
+        .tab {
+            background-color: var(--bg-light-blue);
+            padding: 10px 20px;
+            border-radius: 12px 12px 0 0;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab.add-tab {
+            width: 40px;
+            padding: 10px;
+            font-size: 20px;
+            color: var(--btn-purple);
+            background-color: #dce5fa;
+            cursor: pointer;
+        }
+
+        /* Заголовок страницы */
+        .page-header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .back-btn {
+            margin-right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Список заданий */
+        .task-list {
+            padding: 0 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Карточка "Добавить своё задание" */
+        .add-custom-task {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+
+        .add-icon-btn {
+            width: 36px;
+            height: 36px;
+            background-color: var(--btn-purple);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        /* Обычная карточка задания */
+        .task-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .task-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .task-title {
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .reward-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            color: var(--text-main);
+        }
+
+        .coin {
+            color: var(--coin-yellow);
+            font-size: 18px;
+            background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .reward-numbers {
+            display: flex;
+            gap: 6px;
+        }
+
+        .number-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--num-bg);
+            color: var(--btn-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .task-icon-container {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .check-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 22px;
+            height: 22px;
+            background-color: #aed581; /* Светло-зеленый */
+            border: 2px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .check-badge::after {
+            content: "✓";
+        }
+
+        /* Последняя карточка без галочки */
+        .empty-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 22px;
+            height: 22px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            background-color: white;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="top-tabs">
+            <div class="tab">Костя</div>
+            <div class="tab add-tab">+</div>
+        </div>
+
+        <div class="page-header">
+            <div class="back-btn">‹</div>
+            <div>Настроить задания</div>
+        </div>
+
+        <div class="task-list">
+
+            <div class="add-custom-task">
+                <span>Добавить своё задание</span>
+                <div class="add-icon-btn">+</div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Собрать игрушки</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🧸
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Заправить постель</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🛏️
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Почистить зубы</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🪥
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Накрыть на стол</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🍽️
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Помыть посуду</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🧽
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Вынести мусор</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🗑️
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Сделать зарядку</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🤸‍♂️
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Почитать книгу</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    📖
+                    <div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Получить хорошую оценку</div>
+                    <div class="reward-section">
+                        </div>
+                </div>
+                <div class="task-icon-container">
+                    📝
+                    <div class="empty-badge"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

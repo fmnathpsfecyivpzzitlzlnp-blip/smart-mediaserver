@@ -1,0 +1,7 @@
+dlib
+face-recognition-models
+face-recognition
+Flask
+Flask-Cors
+opencv-python-headless
+numpy

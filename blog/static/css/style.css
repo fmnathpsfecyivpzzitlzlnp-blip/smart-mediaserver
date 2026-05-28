@@ -1,0 +1,153 @@
+/* --- 1. ПАЛИТРА КАРАНДАШЕЙ --- */
+:root {
+    --pencil-gray: #333333;       /* Цвет грифеля */
+    --paper-color: #fdfbf0;       /* Цвет старой бумаги */
+    --line-blue: #a3c2e0;         /* Цвет клетки тетради */
+    
+    /* Цвета карандашей */
+    --crayon-red: #e05e5e;
+    --crayon-blue: #4a80c9;
+    --crayon-green: #6caf68;
+    --crayon-yellow: #f4d03f;
+}
+
+/* --- 2. ФОН И ТИПОГРАФИКА --- */
+body.notebook-bg {
+    /* Текстура бумаги (лучше найти бесшовную картинку "old paper grid texture") */
+    /* Если картинки нет, сделаем клетку через CSS: */
+    background-color: var(--paper-color);
+    background-image: 
+        linear-gradient(var(--line-blue) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line-blue) 1px, transparent 1px);
+    background-size: 25px 25px; /* Размер клетки */
+    font-family: 'Gochi Hand', cursive; /* Рукописный шрифт для текста */
+    color: var(--pencil-gray);
+    margin: 0;
+    padding: 20px;
+}
+
+h1, h2, h3 {
+    font-family: 'Amatic SC', cursive; /* Заголовки как маркером */
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+/* Эффект "Листа бумаги" по центру */
+.paper-sheet {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.6); /* Немного высветляем центр */
+    padding: 40px;
+    /* Кривые углы через border-radius: делает прямоугольник "живым" */
+    border-radius: 2px 255px 3px 25px / 255px 5px 225px 5px;
+    box-shadow: 10px 10px 20px rgba(0,0,0,0.1); /* Мягкая тень */
+    border: 2px solid rgba(0,0,0,0.1); /* Еле заметная граница листа */
+}
+
+/* --- 3. БЛОКИ СО "ШТРИХОВКОЙ" --- */
+
+/* Базовый стиль карточки */
+.sketch-card {
+    position: relative;
+    padding: 20px;
+    margin-bottom: 30px;
+    
+    /* Самое важное: неровные границы */
+    border: 3px solid var(--pencil-gray);
+    /* Магия случайных радиусов для имитации рисования от руки */
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    
+    transition: transform 0.2s ease;
+}
+
+.sketch-card:hover {
+    transform: rotate(-1deg) scale(1.01); /* Блок чуть "шевелится" при наведении */
+}
+
+/* Вариант: Красная штриховка */
+.sketch-card.red {
+    border-color: var(--crayon-red);
+    /* CSS-паттерн для имитации штриховки карандашом */
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 5px,
+        rgba(224, 94, 94, 0.1) 5px,
+        rgba(224, 94, 94, 0.2) 10px
+    );
+}
+
+/* Вариант: Синяя штриховка (другой угол наклона) */
+.sketch-card.blue {
+    border-color: var(--crayon-blue);
+    background: repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 4px,
+        rgba(74, 128, 201, 0.1) 4px,
+        rgba(74, 128, 201, 0.2) 8px
+    );
+}
+
+/* Тень-каракуля под блоком (псевдоэлемент) */
+.sketch-card::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    bottom: -10px;
+    right: -5px;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
+}
+
+/* --- 4. КНОПКИ --- */
+.pencil-btn {
+    display: inline-block;
+    padding: 10px 25px;
+    font-family: 'Amatic SC', cursive;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: white;
+    background-color: var(--pencil-gray);
+    
+    /* Неровная форма кнопки */
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+    transition: all 0.2s;
+}
+
+.pencil-btn:hover {
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
+}
+
+.pencil-btn.primary {
+    background-color: var(--crayon-blue);
+}
+
+.pencil-btn.accent {
+    background-color: var(--crayon-red);
+}
+
+/* --- 5. ПОЛЯ ВВОДА --- */
+input[type="text"], textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px dashed var(--pencil-gray); /* Пунктирная линия для письма */
+    font-family: 'Gochi Hand', cursive;
+    font-size: 1.2rem;
+    color: var(--pencil-gray);
+    padding: 10px;
+    outline: none;
+}
+
+input:focus {
+    border-bottom: 3px solid var(--crayon-blue);
+}

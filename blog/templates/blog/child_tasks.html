@@ -1,0 +1,192 @@
+{% extends 'blog/base.html' %}
+{% block title %}Do it! - Мои задания{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper {
+        --bg-green-light: #e8f5e9;
+        --header-green: #aed581;
+        --text-main: #2c3e50;
+        --text-muted: #757575;
+        --white: #ffffff;
+        --btn-green: #aed581;
+        --coin-yellow: #fbbc04;
+        
+        background-color: var(--bg-green-light);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        padding-bottom: 80px;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        min-height: 600px;
+    }
+
+    .kids-app-wrapper .top-profile-bar {
+        background-color: var(--header-green);
+        padding: 40px 20px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+
+    .kids-app-wrapper .profile-info { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+    .kids-app-wrapper .avatar-mini { width: 45px; height: 45px; background-color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+    
+    .kids-app-wrapper .balance-box { display: flex; flex-direction: column; align-items: flex-end; }
+    .kids-app-wrapper .balance-label { font-size: 10px; text-transform: uppercase; font-weight: bold; color: rgba(0,0,0,0.5); margin-bottom: 2px;}
+    .kids-app-wrapper .balance { display: flex; align-items: center; gap: 5px; font-weight: 900; font-size: 24px; }
+    
+    .kids-app-wrapper .coin {
+        color: var(--coin-yellow); font-size: 18px; font-weight: bold;
+        background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%);
+        border-radius: 50%; width: 26px; height: 26px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Список заданий */
+    .kids-app-wrapper .tasks-container { padding: 0 20px; display: flex; flex-direction: column; gap: 15px; }
+    .kids-app-wrapper .section-title { font-size: 18px; font-weight: 800; margin-bottom: 5px; }
+
+    .kids-app-wrapper .kid-task-card {
+        background-color: var(--white);
+        border-radius: 16px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+
+    .kids-app-wrapper .kid-task-card.completed {
+        opacity: 0.6;
+        transform: scale(0.98);
+        background-color: #f1f8e9;
+    }
+
+    .kids-app-wrapper .task-icon { font-size: 35px; margin-right: 15px; }
+    
+    .kids-app-wrapper .task-details { flex-grow: 1; }
+    .kids-app-wrapper .task-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .kids-app-wrapper .task-reward { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: bold; color: #f5b000; }
+
+    /* Круглый чекбокс */
+    .kids-app-wrapper .checkbox-wrapper { position: relative; width: 34px; height: 34px; flex-shrink: 0; margin-left: 10px; }
+    .kids-app-wrapper .checkbox-wrapper input { opacity: 0; width: 0; height: 0; }
+    .kids-app-wrapper .custom-checkmark { position: absolute; top: 0; left: 0; height: 34px; width: 34px; background-color: #f5f5f5; border: 3px solid #e0e0e0; border-radius: 50%; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+    
+    .kids-app-wrapper .checkbox-wrapper input:checked ~ .custom-checkmark { background-color: var(--btn-green); border-color: var(--btn-green); }
+    .kids-app-wrapper .custom-checkmark::after { content: "✓"; color: white; font-weight: 900; font-size: 20px; display: none; }
+    .kids-app-wrapper .checkbox-wrapper input:checked ~ .custom-checkmark::after { display: block; }
+
+    /* Нижнее меню */
+    .kids-app-wrapper .bottom-nav { position: absolute; bottom: 0; width: 100%; background-color: #7cb342; display: flex; justify-content: space-around; padding: 15px 20px 20px; border-radius: 20px 20px 0 0; z-index: 20; }
+    .kids-app-wrapper .nav-item { font-size: 26px; opacity: 0.5; cursor: pointer; text-decoration: none;}
+    .kids-app-wrapper .nav-item.active { opacity: 1; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+        
+        <div class="top-profile-bar">
+            <div class="profile-info">
+                <div class="avatar-mini">👦🏻</div>
+                <span>Привет, {{ child_name }}!</span>
+            </div>
+            <div class="balance-box">
+                <div class="balance-label">Мой баланс</div>
+                <div class="balance">
+                    <span id="display-coins">{{ child_coins }}</span> <div class="coin">★</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tasks-container">
+            <div class="section-title">Твои дела на сегодня:</div>
+
+            {% for task in tasks %}
+            <label class="kid-task-card" id="card-{{ task.id }}">
+                <div class="task-icon">{{ task.icon }}</div>
+                <div class="task-details">
+                    <div class="task-title">{{ task.title }}</div>
+                    <div class="task-reward">+{{ task.reward }} <span class="coin" style="width:14px;height:14px;font-size:10px;">★</span></div>
+                </div>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" onchange="toggleTask(this, {{ task.id }})">
+                    <span class="custom-checkmark"></span>
+                </div>
+            </label>
+            {% empty %}
+            <div class="text-center p-4 text-muted">
+                <strong>На сегодня заданий нет! 🎉</strong><br>
+                Можно отдыхать или попросить родителей добавить новые.
+            </div>
+            {% endfor %}
+        </div>
+
+        <nav class="bottom-nav">
+            <a href="{% url 'reward_store' %}" class="nav-item" title="Магазин">🧺</a>
+            <a href="{% url 'child_tasks' %}" class="nav-item active" title="Задания">📋</a>
+            <a href="{% url 'dashboard' %}" class="nav-item" title="Профиль">👦🏻</a>
+        </nav>
+
+    </div>
+</div>
+
+<script>
+    async function toggleTask(checkbox, taskId) {
+        const card = document.getElementById(`card-${taskId}`);
+        const displayCoins = document.getElementById('display-coins');
+        const isCompleted = checkbox.checked;
+
+        try {
+            // Отправляем запрос в базу данных
+            const res = await fetch(`/api/child-tasks/${taskId}/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ completed: isCompleted })
+            });
+            const data = await res.json();
+
+            if (data.status === 'ok') {
+                // Если сервер подтвердил, меняем визуал
+                if (isCompleted) {
+                    card.classList.add('completed');
+                } else {
+                    card.classList.remove('completed');
+                }
+
+                // Ставим точный баланс монет из базы данных
+                displayCoins.innerText = data.new_balance;
+
+                // Красивая анимация увеличения
+                displayCoins.style.transform = "scale(1.4)";
+                displayCoins.style.color = "#fbbc04";
+                setTimeout(() => {
+                    displayCoins.style.transform = "scale(1)";
+                    displayCoins.style.color = "var(--text-main)";
+                }, 300);
+
+            } else {
+                alert("Ошибка: " + data.message);
+                checkbox.checked = !isCompleted; // Возвращаем чекбокс на место
+            }
+        } catch (e) {
+            alert("Сетевая ошибка");
+            checkbox.checked = !isCompleted;
+        }
+    }
+</script>
+{% endblock %}

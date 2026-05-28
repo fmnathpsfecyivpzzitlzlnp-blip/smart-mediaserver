@@ -1,0 +1,100 @@
+{% extends 'blog/base.html' %}
+{% block title %}История заданий{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper {
+        --bg-light-blue: #e8f0fe;
+        --header-blue: #8b9dff;
+        --text-main: #2c3e50;
+        --text-muted: #8b929a;
+        --card-bg: #ffffff;
+        --btn-purple: #8b9dff;
+        --coin-yellow: #fbbc04;
+        
+        background-color: var(--bg-light-blue);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding-bottom: 30px;
+        min-height: 600px;
+    }
+
+    .kids-app-wrapper .top-tabs { background-color: var(--header-blue); display: flex; padding-top: 40px; padding-left: 20px; gap: 10px; }
+    .kids-app-wrapper .tab { background-color: var(--bg-light-blue); padding: 10px 20px; border-radius: 12px 12px 0 0; font-weight: 700; font-size: 16px; color: var(--text-main); }
+
+    .kids-app-wrapper .page-header { display: flex; align-items: center; padding: 20px; font-size: 24px; font-weight: 700; }
+    .kids-app-wrapper .back-btn { margin-right: 15px; font-size: 24px; cursor: pointer; color: var(--text-main); text-decoration: none; }
+
+    /* Лента истории */
+    .kids-app-wrapper .history-list { padding: 0 20px; display: flex; flex-direction: column; gap: 15px; }
+    
+    .kids-app-wrapper .history-card {
+        background-color: var(--card-bg);
+        border-radius: 16px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border-left: 4px solid #aed581; /* Зеленая полоса успеха */
+    }
+
+    .kids-app-wrapper .history-icon { font-size: 30px; margin-right: 15px; background-color: #f1f8e9; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;}
+    
+    .kids-app-wrapper .history-info { flex-grow: 1; }
+    .kids-app-wrapper .history-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .kids-app-wrapper .history-date { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+    .kids-app-wrapper .history-reward {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+    
+    .kids-app-wrapper .coin { color: var(--coin-yellow); font-size: 14px; background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+
+        <div class="top-tabs">
+            <div class="tab">{{ child_name }}</div>
+        </div>
+
+        <div class="page-header">
+            <a href="{% url 'parent_dashboard' %}" class="back-btn">‹</a>
+            <div>История заданий</div>
+        </div>
+
+        <div class="history-list">
+            {% for task in completed_tasks %}
+            <div class="history-card">
+                <div class="history-icon">{{ task.icon }}</div>
+                <div class="history-info">
+                    <div class="history-title">{{ task.title }}</div>
+                    <div class="history-date">{{ task.created_at|date:"d.m.Y в H:i" }}</div>
+                </div>
+                <div class="history-reward">
+                    +{{ task.reward }} <div class="coin">★</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center p-4 text-muted mt-4">
+                <strong>Пока пусто!</strong><br><br>
+                Здесь появится список дел, когда Костя выполнит свое первое задание.
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

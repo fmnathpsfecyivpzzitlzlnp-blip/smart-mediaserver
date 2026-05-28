@@ -1,0 +1,56 @@
+{% extends "blog/base.html" %}
+
+{% block content %}
+<h2>⚙️ Центр обработки видео</h2>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <h3>Активные процессы</h3>
+        {% for video in active_videos %}
+        <div class="card mb-3 border-primary">
+            <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+                <span>{{ video.title }}</span>
+                <span class="badge bg-light text-dark">{{ video.get_status_display }}</span>
+            </div>
+            <div class="card-body">
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">Обработка...</div>
+                </div>
+                
+                <div class="logs-console bg-dark text-success p-3 rounded" style="max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9em;">
+                    {% for log in video.logs.all %}
+                        <div><span class="text-secondary">[{{ log.timestamp|date:"H:i:s" }}]</span> {{ log.message }}</div>
+                    {% empty %}
+                        <div>Ожидание начала логирования...</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+            <div class="alert alert-success">Нет активных задач. Система простаивает.</div>
+        {% endfor %}
+    </div>
+
+    <div class="col-md-4">
+        <h4>Недавние ошибки</h4>
+        <ul class="list-group mb-4">
+            {% for v in error_videos %}
+                <li class="list-group-item list-group-item-danger">{{ v.title }}</li>
+            {% endfor %}
+        </ul>
+
+        <h4>Готово</h4>
+        <ul class="list-group">
+            {% for v in completed_videos %}
+                <li class="list-group-item list-group-item-success">✅ {{ v.title }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<script>
+    setTimeout(function(){
+       location.reload();
+    }, 5000);
+</script>
+{% endblock %}

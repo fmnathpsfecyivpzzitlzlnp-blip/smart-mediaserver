@@ -1,0 +1,675 @@
+
+{% extends "blog/base.html" %}
+
+{% block title %}Органайзер{% endblock %}
+
+{% block extra_head %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<style>
+/* Стиль для зачеркивания выполненных задач */
+.task-completed .task-title-span { text-decoration: line-through; color: #6c757d; opacity: 0.7; }
+/* Стили для перетаскивания списка */
+.task-item .drag-handle { cursor: grab; }
+.task-item.sortable-chosen .drag-handle { cursor: grabbing; }
+.task-item:hover { background-color: #f8f9fa; }
+.sortable-ghost { background: #e9ecef; opacity: 0.5; border: 1px dashed #dee2e6; }
+
+/* Курсор для событий календаря */
+.fc-event { cursor: pointer; }
+.fc-daygrid-day-number { color: #e9ecef; text-decoration: none; }
+.fc-col-header-cell-cushion { color: #e9ecef; text-decoration: none; }
+/* Темная тема для календаря */
+.fc-theme-standard .fc-scrollgrid { border-color: #444; }
+.fc-theme-standard td, .fc-theme-standard th { border-color: #444; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Органайзер</h2>
+
+    <ul class="nav nav-pills" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pills-list-tab" data-bs-toggle="pill" data-bs-target="#pills-list" type="button" role="tab">
+                <i class="bi bi-list-task"></i> Список
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-calendar-tab" data-bs-toggle="pill" data-bs-target="#pills-calendar" type="button" role="tab">
+                <i class="bi bi-calendar-week"></i> Календарь
+            </button>
+        </li>
+    </ul>
+</div>
+
+<div class="card bg-dark border-secondary text-white mb-4 shadow-sm">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="text-muted mb-0"><i class="bi bi-activity"></i> Быстрый лог событий</h6>
+            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#addEventTypeModal" title="Создать новую категорию">
+                <i class="bi bi-plus-lg"></i> Добавить трекер
+            </button>
+            <a href="{% url 'habits_library' %}" class="btn btn-sm btn-outline-info rounded-pill ms-2">
+                <i class="bi bi-book"></i> Каталог шаблонов
+            </a>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            {% for e_type in event_types %}
+                <button class="btn btn-outline-light tracker-btn"
+                        data-id="{{ e_type.id }}"
+                        data-name="{{ e_type.name }}"
+                        style="border-color: {{ e_type.color }};">
+                    <i class="bi {{ e_type.icon }}" style="color: {{ e_type.color }};"></i> {{ e_type.name }}
+                </button>
+            {% empty %}
+                <span class="text-muted small">У вас пока нет кнопок. Нажмите «Добавить трекер» справа вверху.</span>
+            {% endfor %}
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            {% for e in grouped_events %}
+                <div class="badge bg-secondary p-2">
+                    {{ e.name }}: <span class="text-warning fw-bold">{{ e.count }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="small text-muted border-top border-secondary pt-2">
+            <strong>Недавно:</strong>
+            {% for event in recent_events %}
+                <span class="badge bg-secondary me-1 mb-1 position-relative pe-4" id="tracker-log-{{ event.id }}">
+                    {{ event.timestamp|date:"H:i" }} - {{ event.title }}
+                    {% if event.value > 1 %}({{ event.value }}){% endif %}
+
+                    <button type="button" class="btn-close btn-close-white position-absolute top-50 end-0 translate-middle-y me-1"
+                            style="font-size: 0.4rem; padding: 0.2rem;"
+                            onclick="deleteTrackerLog({{ event.id }})"
+                            title="Удалить запись"></button>
+                </span>
+            {% empty %}
+                Нет записей за сегодня.
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="pills-tabContent">
+
+    <div class="tab-pane fade show active" id="pills-list" role="tabpanel">
+        <div class="row">
+            <div class="col-md-4 col-lg-3">
+                <form action="{% url 'add_project' %}" method="post" class="d-flex gap-2 mb-3">
+                    {% csrf_token %}
+                    <input type="text" name="name" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Новый проект..." required autocomplete="off">
+                    <button type="submit" class="btn btn-sm btn-primary" title="Создать новый проект">+</button>
+                </form>
+                <div class="list-group">
+                    {% for project in projects %}
+                    <a href="?project_id={{ project.id }}" class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center {% if project.id == selected_project.id %}active{% endif %}">
+                        <span class="text-truncate me-2" title="{{ project.name }}">{{ project.name }}</span>
+
+                        {% if project.total_tasks > 0 %}
+                        <div class="d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                            <span class="badge bg-success" title="Выполнено: {{ project.completed_tasks }}"><i class="bi bi-check2"></i> {{ project.completed_tasks }}</span>
+                            <span class="badge bg-warning text-dark" title="Осталось: {{ project.remaining_tasks }}"><i class="bi bi-hourglass-split"></i> {{ project.remaining_tasks }}</span>
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% empty %}
+                    <div class="list-group-item bg-dark text-muted small border-secondary">Создайте ваш первый проект.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-md-8 col-lg-9">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                    <div class="d-flex align-items-center">
+                        <h3 class="mb-0">{{ selected_project.name }}</h3>
+                        <button class="btn btn-sm btn-outline-danger ms-3 border-0" onclick="deleteProject({{ selected_project.id }})" title="Удалить проект и все его задачи">
+                            <i class="bi bi-trash3 fs-5"></i>
+                        </button>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#taskModal">Добавить задачу</button>
+                        {% if project_templates %}
+                        <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                            <li><h6 class="dropdown-header">Применить шаблон</h6></li>
+                            {% for template in project_templates %}
+                            <li><a class="dropdown-item apply-template-btn" href="#" data-template-id="{{ template.pk }}">{{ template.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="list-group" id="task-list-container">
+                    {% for item in grouped_tasks %}
+                        {% include "blog/partials/task_item.html" with task=item.task %}
+
+                        {% if item.count > 1 %}
+                            <div class="list-group-item bg-dark border-secondary py-1 text-center" style="border-top: none; margin-top: -5px; opacity: 0.8;">
+                                <small class="text-info"><i class="bi bi-arrow-repeat"></i> Ещё {{ item.count|add:"-1" }} повторений скрыто</small>
+                            </div>
+                        {% endif %}
+                    {% empty %}
+                    <div id="no-tasks-placeholder" class="text-center p-5 bg-dark border border-secondary rounded text-muted">
+                        <p class="mb-0">Задач нет. Можно отдыхать! ✨</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="pills-calendar" role="tabpanel">
+        <div class="card p-3 bg-dark text-white border-secondary">
+            <div id='calendar'></div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="addEventTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fs-6"><i class="bi bi-stars text-warning"></i> Новый трекер</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addEventTypeForm">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Название (Изжога, Кофе, Сон...)</label>
+                        <input type="text" id="eventTypeName" class="form-control bg-secondary text-white border-0" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Цвет кнопки</label>
+                        <input type="color" id="eventTypeColor" class="form-control form-control-color w-100 border-0 bg-secondary" value="#dc3545">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Иконка (класс Bootstrap)</label>
+                        <input type="text" id="eventTypeIcon" class="form-control bg-secondary text-white border-0" value="bi-activity">
+                        <div class="form-text text-white-50" style="font-size: 0.7rem;">Например: bi-cup-hot, bi-fire, bi-heart-pulse</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="submit" form="addEventTypeForm" class="btn btn-success w-100">Добавить на панель</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="logEventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fs-5" id="logEventTitle">Зафиксировать</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="logEventForm">
+                    <input type="hidden" id="logEventTypeId">
+                    <div class="mb-3">
+                        <label class="form-label small text-info fw-bold">Время события (можно менять)</label>
+                        <input type="datetime-local" id="logEventTime" class="form-control bg-secondary text-white border-0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Количество / Значение (для спорта, воды)</label>
+                        <input type="number" id="logEventValue" class="form-control bg-secondary text-white border-0" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Заметка (опционально - что ели, как спали)</label>
+                        <input type="text" id="logEventNote" class="form-control bg-secondary text-white border-0" autocomplete="off" placeholder="Например: съел пиццу">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-danger" id="deleteTrackerBtn" title="Удалить категорию">
+                    <i class="bi bi-trash3"></i>
+                </button>
+                <div>
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" form="logEventForm" class="btn btn-info text-dark fw-bold">Сохранить в лог</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="taskModalLabel">Задача</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" id="taskIdInput">
+                    <div class="mb-3">
+                        <label for="taskTitleInput" class="form-label">Название</label>
+                        <input type="text" class="form-control bg-secondary text-white border-0" id="taskTitleInput" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskDescInput" class="form-label">Комментарий / Инструкция</label>
+                        <textarea class="form-control bg-secondary text-white border-0" id="taskDescInput" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="taskDueDateInput" class="form-label">Срок выполнения (дата)</label>
+                        <input type="date" class="form-control bg-secondary text-white border-0" id="taskDueDateInput">
+                    </div>
+                    <div class="mb-3">
+                        <label for="assigneeSelect" class="form-label">Исполнитель</label>
+                        <select class="form-select bg-secondary text-white border-0" id="assigneeSelect">
+                            <option value="">(не назначен)</option>
+                            {% for member in project_members %}<option value="{{ member.id }}">{{ member.username }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isPrivateCheckbox">
+                        <label class="form-check-label" for="isPrivateCheckbox">🔒 Личная задача</label>
+                    </div>
+
+                    <hr class="border-secondary mt-4">
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">В какое время? (можно несколько раз)</label>
+                        <div id="timeSlotsContainer"></div>
+                        <button type="button" class="btn btn-sm btn-outline-info w-100 mt-2" id="addTimeBtn">+ Добавить время</button>
+                    </div>
+
+                    <div class="mb-3 form-check bg-dark p-2 rounded border border-secondary" style="padding-left: 2rem !important;">
+                        <input type="checkbox" class="form-check-input" id="isRecurringCheckbox">
+                        <label class="form-check-label text-warning fw-bold" for="isRecurringCheckbox" id="recurringLabelText">
+                            <i class="bi bi-arrow-repeat"></i> Сделать регулярной
+                        </label>
+                    </div>
+
+                    <div id="recurringOptions" style="display: none; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px dashed #6c757d;">
+                        <label class="form-label small text-muted">Дни повторения:</label>
+                        <div class="btn-group w-100 mb-2 shadow-sm d-flex">
+                            <input type="checkbox" class="btn-check rec-day" id="rd0" value="0"><label class="btn btn-outline-secondary py-1" for="rd0">Пн</label>
+                            <input type="checkbox" class="btn-check rec-day" id="rd1" value="1"><label class="btn btn-outline-secondary py-1" for="rd1">Вт</label>
+                            <input type="checkbox" class="btn-check rec-day" id="rd2" value="2"><label class="btn btn-outline-secondary py-1" for="rd2">Ср</label>
+                            <input type="checkbox" class="btn-check rec-day" id="rd3" value="3"><label class="btn btn-outline-secondary py-1" for="rd3">Чт</label>
+                            <input type="checkbox" class="btn-check rec-day" id="rd4" value="4"><label class="btn btn-outline-secondary py-1" for="rd4">Пт</label>
+                            <input type="checkbox" class="btn-check rec-day" id="rd5" value="5"><label class="btn btn-outline-secondary py-1" for="rd5">Сб</label>
+                            <input type="checkbox" class="btn-check rec-day" id="rd6" value="6"><label class="btn btn-outline-secondary py-1" for="rd6">Вс</label>
+                        </div>
+                        <label class="form-label small text-muted mt-2">Как долго повторять?</label>
+                        <select class="form-select bg-secondary text-white border-0" id="recurringDuration">
+                            <option value="1">1 неделя</option><option value="2" selected>2 недели</option><option value="4">1 месяц</option><option value="12">3 месяца</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" form="taskForm" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    // --- 1. SORTABLE ---
+    const taskContainer = document.getElementById('task-list-container');
+    if (taskContainer && typeof Sortable !== 'undefined') {
+        new Sortable(taskContainer, {
+            animation: 150, handle: '.drag-handle', ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                const newOrder = Array.from(taskContainer.querySelectorAll('.task-item')).map(item => item.dataset.taskId);
+                fetch("{% url 'reorder_tasks' %}", { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}, body: JSON.stringify({order: newOrder}) });
+            }
+        });
+    }
+
+    // --- 2. КАЛЕНДАРЬ ---
+    const calendarEl = document.getElementById('calendar');
+    if (typeof FullCalendar !== 'undefined' && calendarEl) {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth', locale: 'ru', themeSystem: 'standard',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+            events: "{% url 'calendar_events' %}", editable: true,
+            eventDrop: async function(info) {
+                if (!confirm(`Перенести на ${info.event.start.toLocaleDateString()}?`)) { info.revert(); return; }
+                try {
+                    const newDate = `${info.event.start.getFullYear()}-${String(info.event.start.getMonth() + 1).padStart(2, '0')}-${String(info.event.start.getDate()).padStart(2, '0')}`;
+                    await fetch(`/api/tasks/${info.event.id}/`, { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}, body: JSON.stringify({ due_date: newDate }) });
+                } catch (e) { info.revert(); }
+            },
+            eventClick: function(info) {
+                 info.jsEvent.preventDefault();
+                 if (info.event.url && info.event.url.includes('/learning/')) window.location.href = info.event.url;
+                 else {
+                     const triggerEl = document.createElement('div'); triggerEl.dataset.taskId = info.event.id;
+                     taskModalEl.dispatchEvent(new CustomEvent('show.bs.modal', { relatedTarget: triggerEl }));
+                     taskModal.show();
+                 }
+            }
+        });
+        document.getElementById('pills-calendar-tab')?.addEventListener('shown.bs.tab', e => calendar.render());
+        window.myCalendar = calendar;
+    }
+
+    // --- 3. ЛОГИКА ФОРМЫ И УДАЛЕНИЯ ---
+    const taskModalEl = document.getElementById('taskModal');
+    const taskModal = new bootstrap.Modal(taskModalEl);
+    const taskForm = document.getElementById('taskForm');
+    const isRecurringCheckbox = document.getElementById('isRecurringCheckbox');
+    const recurringOptions = document.getElementById('recurringOptions');
+    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+
+    isRecurringCheckbox.addEventListener('change', function() {
+        recurringOptions.style.display = this.checked ? 'block' : 'none';
+    });
+
+    document.getElementById('addTimeBtn')?.addEventListener('click', () => {
+        const slot = document.createElement('div'); slot.className = 'd-flex gap-2 mb-2 time-slot';
+        slot.innerHTML = `<input type="time" class="form-control bg-secondary text-white border-0 rec-time"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>`;
+        timeSlotsContainer.appendChild(slot);
+    });
+
+    taskModalEl.addEventListener('show.bs.modal', async e => {
+        const taskId = e.relatedTarget ? e.relatedTarget.dataset.taskId : null;
+        taskForm.reset();
+        document.getElementById('taskIdInput').value = taskId || '';
+        document.querySelectorAll('.rec-day').forEach(cb => cb.checked = false);
+        timeSlotsContainer.innerHTML = '';
+        recurringOptions.style.display = 'none';
+
+        if (taskId) {
+            document.getElementById('taskModalLabel').textContent = 'Редактировать задачу';
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/`);
+                const data = await response.json();
+
+                document.getElementById('taskTitleInput').value = data.title;
+                document.getElementById('taskDescInput').value = data.description || '';
+                document.getElementById('taskDueDateInput').value = data.due_date;
+                document.getElementById('assigneeSelect').value = data.assigned_to_id;
+                document.getElementById('isPrivateCheckbox').checked = data.is_private;
+
+                if (data.recurring_times && data.recurring_times.length > 0) {
+                    data.recurring_times.forEach(t => {
+                        const slot = document.createElement('div'); slot.className = 'd-flex gap-2 mb-2 time-slot';
+                        slot.innerHTML = `<input type="time" class="form-control bg-secondary text-white border-0 rec-time" value="${t}"><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>`;
+                        timeSlotsContainer.appendChild(slot);
+                    });
+                } else {
+                    timeSlotsContainer.innerHTML = `<div class="d-flex gap-2 mb-2 time-slot"><input type="time" class="form-control bg-secondary text-white border-0 rec-time"></div>`;
+                }
+
+                if (data.is_series) {
+                    isRecurringCheckbox.checked = true;
+                    document.getElementById('recurringLabelText').innerHTML = 'Применить изменения ко всей серии';
+                    data.recurring_days.forEach(dayIdx => { document.getElementById(`rd${dayIdx}`).checked = true; });
+                    recurringOptions.style.display = 'block';
+                } else {
+                    isRecurringCheckbox.checked = false;
+                    document.getElementById('recurringLabelText').innerHTML = 'Сделать задачу регулярной';
+                }
+            } catch(error) { console.error(error); }
+        } else {
+            document.getElementById('taskModalLabel').textContent = 'Новая задача';
+            document.getElementById('recurringLabelText').innerHTML = 'Сделать регулярной';
+            timeSlotsContainer.innerHTML = `<div class="d-flex gap-2 mb-2 time-slot"><input type="time" class="form-control bg-secondary text-white border-0 rec-time"></div>`;
+        }
+    });
+
+    taskForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const taskId = document.getElementById('taskIdInput').value;
+        const url = taskId ? `/api/tasks/${taskId}/` : '{% url "add_task" %}';
+
+        const body = {
+            title: document.getElementById('taskTitleInput').value.trim(),
+            description: document.getElementById('taskDescInput').value.trim(),
+            project_id: "{{ selected_project.id }}",
+            assigned_to_id: document.getElementById('assigneeSelect').value,
+            due_date: document.getElementById('taskDueDateInput').value || null,
+            is_private: document.getElementById('isPrivateCheckbox').checked,
+
+            is_recurring: isRecurringCheckbox.checked, // Единый флаг
+            recurring_days: Array.from(document.querySelectorAll('.rec-day:checked')).map(cb => parseInt(cb.value)),
+            recurring_duration_weeks: parseInt(document.getElementById('recurringDuration').value),
+            recurring_times: Array.from(document.querySelectorAll('.rec-time')).map(input => input.value).filter(v => v !== "")
+        };
+
+        if (!body.title) return;
+
+        try {
+            const response = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}, body: JSON.stringify(body)});
+            const data = await response.json();
+            if (data.status === 'ok') location.reload(); // Всегда перезагружаем для страховки
+            else alert(data.message || 'Ошибка');
+        } catch (err) { alert("Сетевая ошибка"); }
+    });
+
+    // УДАЛЕНИЕ И ВЫПОЛНЕНИЕ
+    if (taskContainer) {
+        taskContainer.addEventListener('click', e => {
+            const checkbox = e.target.closest('.task-toggle-checkbox');
+            if (checkbox) {
+                e.stopPropagation();
+                fetch(`/api/tasks/${checkbox.dataset.taskId}/toggle/`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken }})
+                .then(res => res.json()).then(data => {
+                    if(data.status === 'ok') {
+                        checkbox.closest('.task-item').classList.toggle('task-completed', data.is_completed);
+                        if (window.myCalendar) window.myCalendar.refetchEvents();
+                    }
+                });
+            }
+
+            const deleteBtn = e.target.closest('.delete-task-btn');
+            if (deleteBtn) {
+                e.stopPropagation();
+                const isGrouped = deleteBtn.closest('.task-item').nextElementSibling?.innerText.includes('повторений скрыто');
+                let deleteAll = false;
+
+                if (isGrouped) {
+                    if(!confirm("Удалить ВСЮ серию будущих повторений этой задачи?")) return;
+                    deleteAll = true;
+                } else {
+                    if(confirm("Удалить ВСЮ серию? (Отмена = удалить только эту)")) deleteAll = true;
+                }
+
+                fetch(`/api/tasks/${deleteBtn.dataset.taskId}/delete/`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                    body: JSON.stringify({delete_all: deleteAll})
+                }).then(res => res.json()).then(data => { if(data.status === 'ok') location.reload(); });
+            }
+        });
+    }
+
+    // ШАБЛОНЫ
+    document.body.addEventListener('click', async function(e) {
+        if (e.target.classList.contains('apply-template-btn')) {
+            e.preventDefault(); if (!confirm('Применить шаблон?')) return;
+            fetch("{% url 'apply_template' %}", { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}, body: JSON.stringify({template_id: e.target.dataset.templateId, project_id: "{{ selected_project.id }}"}) })
+            .then(res => res.json()).then(data => { if (data.status === 'ok') location.reload(); });
+        }
+    });
+});
+// Получаем токен один раз для всех скриптов на странице
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    // --- 4. ЛОГИКА ТРЕКЕРА СОБЫТИЙ (КРАСИВОЕ ОКНО) ---
+    const logEventModalEl = document.getElementById('logEventModal');
+    let logEventModal;
+    if (logEventModalEl) {
+        logEventModal = new bootstrap.Modal(logEventModalEl);
+    }
+
+    document.querySelectorAll('.tracker-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventTypeId = this.dataset.id;
+            const eventName = this.dataset.name;
+            const iconClass = this.querySelector('i').className;
+            const color = this.style.borderColor;
+
+            // Настраиваем окно под нажатую кнопку
+            document.getElementById('logEventTitle').innerHTML = `<i class="${iconClass} me-2" style="color:${color}"></i> ${eventName}`;
+            document.getElementById('logEventTypeId').value = eventTypeId;
+            document.getElementById('logEventValue').value = 1;
+            document.getElementById('logEventNote').value = '';
+
+            // Ставим текущее локальное время
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('logEventTime').value = now.toISOString().slice(0,16);
+
+            // Открываем красивое окно
+            logEventModal.show();
+        });
+    });
+
+    // Отправка формы сохранения события
+    document.getElementById('logEventForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.querySelector('button[form="logEventForm"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
+
+        try {
+            const response = await fetch("{% url 'add_tracker_event' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    event_type_id: document.getElementById('logEventTypeId').value,
+                    value: document.getElementById('logEventValue').value,
+                    note: document.getElementById('logEventNote').value,
+                    timestamp: document.getElementById('logEventTime').value // Отправляем точное время
+                })
+            });
+            const data = await response.json();
+            if(data.status === 'ok') {
+                location.reload();
+            } else {
+                alert("Ошибка БД: " + data.message);
+                btn.disabled = false; btn.innerHTML = 'Сохранить в лог';
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Сетевая ошибка. Перезагрузите Docker.");
+            btn.disabled = false; btn.innerHTML = 'Сохранить в лог';
+        }
+    });
+// --- 5. ЛОГИКА СОЗДАНИЯ НОВОЙ КАТЕГОРИИ ---
+    document.getElementById('addEventTypeForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // 👇 ДОБАВЛЯЕМ ВОТ ЭТУ СТРОКУ, ЧТОБЫ СКРИПТ НАШЕЛ ТОКЕН 👇
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        const btn = document.querySelector('button[form="addEventTypeForm"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Сохраняем...';
+
+        try {
+            const response = await fetch("{% url 'add_event_type' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                name: document.getElementById('eventTypeName').value,
+                color: document.getElementById('eventTypeColor').value,
+                icon: document.getElementById('eventTypeIcon').value
+            })
+        });
+
+        // Проверяем, вернул ли сервер правильный формат (JSON), а не страницу с ошибкой
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+            if (data.status === 'ok') {
+                location.reload(); // Успех! Обновляем страницу
+            } else {
+                alert('Ошибка базы данных: ' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Добавить на панель';
+            }
+        } else {
+            // Если сервер вернул HTML (ошибка 404 или 500)
+            console.error("Сервер вернул ошибку:", await response.text());
+            alert('Сбой на сервере. Вы точно перезагрузили Docker? (docker compose restart web worker)');
+            btn.disabled = false;
+            btn.innerHTML = 'Добавить на панель';
+        }
+    } catch (err) {
+        console.error("Сетевая ошибка:", err);
+        alert('Сетевая ошибка. Сервер не отвечает.');
+        btn.disabled = false;
+        btn.innerHTML = 'Добавить на панель';
+    }
+});
+
+// --- 6. ЛОГИКА УДАЛЕНИЯ КАТЕГОРИИ ТРЕКЕРА ---
+    document.getElementById('deleteTrackerBtn')?.addEventListener('click', async function() {
+        const id = document.getElementById('logEventTypeId').value;
+
+        if(confirm("🚨 Вы уверены, что хотите удалить этот трекер? Вся его история записей тоже будет удалена!")) {
+            try {
+                const response = await fetch(`/api/tracker/category/${id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                const data = await response.json();
+                if(data.status === 'ok') {
+                    location.reload(); // Перезагружаем страницу после удаления
+                } else {
+                    alert("Ошибка БД: " + data.message);
+                }
+            } catch(e) {
+                alert("Сетевая ошибка. Сервер не отвечает.");
+            }
+        }
+    });
+
+// --- 7. ЛОГИКА УДАЛЕНИЯ ПРОЕКТА ---
+    window.deleteProject = async function(projectId) {
+        if(confirm("🚨 Вы уверены, что хотите удалить этот проект? ВСЕ задачи внутри него будут удалены навсегда!")) {
+            try {
+                const response = await fetch(`/api/projects/${projectId}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken } // csrfToken у нас уже объявлен выше
+                });
+                const data = await response.json();
+                if(data.status === 'ok') {
+                    window.location.href = "{% url 'organizer' %}"; // Сбрасываем на главную органайзера
+                } else {
+                    alert("Ошибка: " + data.message);
+                }
+            } catch(e) {
+                alert("Сетевая ошибка.");
+            }
+        }
+    };
+
+// --- 8. ЛОГИКА УДАЛЕНИЯ КОНКРЕТНОЙ ЗАПИСИ ТРЕКЕРА ---
+    window.deleteTrackerLog = async function(eventId) {
+        if(confirm("Удалить эту запись из истории?")) {
+            try {
+                const response = await fetch(`/api/tracker/event/${eventId}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                const data = await response.json();
+                if(data.status === 'ok') {
+                    // Удаляем бейджик с экрана без перезагрузки всей страницы
+                    const badge = document.getElementById(`tracker-log-${eventId}`);
+                    if(badge) badge.remove();
+                } else {
+                    alert("Ошибка: " + data.message);
+                }
+            } catch(e) {
+                alert("Сетевая ошибка.");
+            }
+        }
+    };
+</script>
+{% endblock %}

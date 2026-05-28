@@ -1,0 +1,72 @@
+services:
+  # 1. Django веб-сервер, работающий под Gunicorn
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: gunicorn mysite.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/code
+      - static_volume:/code/staticfiles
+      - media_volume:/code/media # <--- ИЗМЕНЕНИЕ: Используем общий том
+      - D:/MediaServer/Source:/source_movies # <--- СКАНЕР БУДЕТ СМОТРЕТЬ СЮДА
+    expose:
+      - 8000
+    depends_on:
+      - redis
+
+  # 2. Веб-сервер Nginx для раздачи статики/медиа и проксирования запросов
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/code/staticfiles
+      - media_volume:/code/media # <--- ИЗМЕНЕНИЕ: Используем общий том
+    depends_on:
+      - web
+
+  # 3. Redis - брокер сообщений для Celery
+  redis:
+    image: "redis:7.2-alpine"
+    restart: always
+
+  # 4. Celery Worker - фоновый обработчик для тяжелых задач (конвертация и т.д.)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A mysite worker -l info --concurrency=2
+    volumes:
+      - .:/code
+      - media_volume:/code/media # <--- ИЗМЕНЕНИЕ: Используем общий том
+      - D:/MediaServer/Source:/source_movies # <--- WORKER БУДЕТ ЧИТАТЬ ИСХОДНИКИ ОТСЮДА
+    depends_on:
+      - redis
+
+  # ... (остальные сервисы: beat, face_recognition остаются без изменений)
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A mysite beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+      - web
+
+  face_recognition:
+    build:
+      context: ./face_recognition_service
+      dockerfile: Dockerfile
+    ports:
+      - "9001:5001"
+    volumes:
+      - ./face_recognition_service/app.py:/app/app.py
+      - ./face_recognition_service/known_faces:/app/known_faces
+
+# Определяем тома, которыми управляет Docker
+volumes:
+  static_volume:
+  media_volume: {} # <--- ДОБАВЛЕНО: Объявляем новый том

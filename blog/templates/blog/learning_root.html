@@ -1,0 +1,59 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+
+{% block title %}Центр обучения{% endblock %}
+
+{% block page_header %}
+    Центр обучения
+{% endblock %}
+
+{% block content %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+    {% for category in categories %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-secondary text-white bg-dark">
+            <div class="card-body d-flex align-items-center">
+
+                <!-- Иконка -->
+                <div class="flex-shrink-0 me-3">
+                    {% if category.svg_icon %}
+                        <!-- Теперь сработает, так как мы добавили load static вверху -->
+                        <img src="{% static category.svg_icon %}"
+                             style="width: 50px; height: 50px;"
+                             alt="{{ category.name }}">
+                    {% else %}
+                        <!-- Запасная иконка, если в базе пусто -->
+                        <i class="bi bi-mortarboard-fill text-primary" style="font-size: 3rem;"></i>
+                    {% endif %}
+                </div>
+
+                <!-- Текст -->
+                <div class="flex-grow-1">
+                    <h5 class="card-title mb-1">{{ category.name }}</h5>
+                    <p class="card-text text-muted small mb-0">
+                        {{ category.course_count }} курсов
+                    </p>
+                    {% if category.description %}
+                        <small class="text-secondary">{{ category.description|truncatechars:60 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- Ссылка на всю карточку -->
+                <a href="{% url 'learning_category_detail' category.slug %}" class="stretched-link"></a>
+            </div>
+
+            <!-- Прогресс бар (декоративный) -->
+            <div class="card-footer p-0 bg-secondary" style="height: 5px;">
+                <div class="bg-primary h-100" style="width: 40%"></div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            Категории обучения пока не созданы.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+🎨 Frontend (HTML, CSS, JS)
+
+Здесь Docker не трогаем. Механика простая: Сохранил файл ➔ Обновил страницу в браузере.
+🚀 Старт и остановка (Базовое управление)
+
+    Запустить весь проект (в фоновом режиме):
+    Bash
+
+    docker compose up -d
+
+    Остановить всё (и удалить контейнеры/сети):
+    Bash
+
+    docker compose down
+
+🔄 Обновление кода (Деплой изменений)
+
+    Изменился код Python (views.py, urls.py, задачи Celery):
+    Быстрая перезагрузка контейнеров для применения нового кода.
+    Bash
+
+    docker compose restart web worker
+
+    Изменилась инфраструктура (Dockerfile, docker-compose.yml) или зависимости (requirements.txt):
+    Требуется "тяжелая" команда для полной пересборки образов.
+    Bash
+
+    docker compose up -d --build
+
+    (Если нужно пересобрать только конкретные сервисы: docker compose up -d --build web worker)
+
+🛠 Django-специфика (Команды внутри контейнера)
+
+    Применить миграции БД (после изменения models.py):
+    Bash
+
+    docker compose exec web python manage.py migrate
+
+    Создать администратора (суперпользователя):
+    Bash
+
+    docker compose exec web python manage.py createsuperuser
+
+📊 Мониторинг и дебаг
+
+    Проверить статус:
+    Смотрим, всё ли поднялось и нет ли упавших (Exited) контейнеров.
+    Bash
+
+    docker compose ps
+
+    Смотреть логи (в реальном времени):
+    Bash
+
+    docker compose logs -f web
+
+    Смотреть последние 100 строк логов (чтобы не грузить весь архив):
+    Bash
+
+    docker compose logs -f --tail=100 web
+
+    Прочее:
+    Посмотри статус всех контейнеров:
+    docker compose ps

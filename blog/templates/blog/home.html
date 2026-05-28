@@ -1,0 +1,45 @@
+{% extends "blog/base.html" %}
+{% load static %} {% block content %}
+
+    <img src="{% static 'img/paperclip.png' %}" class="paperclip clip-top-right" alt="clip">
+
+    <img src="{% static 'img/coffee-stain.png' %}" class="coffee-stain stain-bottom-right" alt="coffee">
+
+
+    <div style="text-align: center; margin-bottom: 40px; position: relative;">
+        <div class="tape tape-center"></div>
+
+        <h1 style="font-size: 4rem; color: var(--crayon-red); margin-top: 20px;">
+            Мои Заметки
+        </h1>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+
+        <div>
+            <div class="sketch-card blue">
+                <h2>Важное дело</h2>
+                <p>Не забыть купить корм коту и дописать код на Django.</p>
+            </div>
+
+            <div class="sketch-card red">
+                <h2>Дедлайн</h2>
+                <p>Сдать проект до пятницы!</p>
+            </div>
+        </div>
+
+        <div>
+            <div class="photo-frame">
+                <div class="tape tape-top-left"></div>
+
+                <img src="https://via.placeholder.com/300x200" alt="Мое фото">
+
+                <p style="text-align: center; font-family: 'Gochi Hand'; margin-top: 5px;">
+                    Вид из окна...
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ learning_category.name }} | Обучение{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" style="--bs-breadcrumb-divider: '>';" class="fs-6 mb-4">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'learning_root' %}" class="text-decoration-none text-muted">Обучение</a></li>
+        <li class="breadcrumb-item active text-white" aria-current="page">{{ learning_category.name }}</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex align-items-center mb-4">
+        {% if learning_category.slug == 'golang' %}
+            <i class="bi bi-filetype-go display-4 text-info me-3"></i>
+        {% elif learning_category.slug == 'python' %}
+            <i class="bi bi-filetype-py display-4 text-warning me-3"></i>
+        {% else %}
+            <i class="bi bi-folder2-open display-4 text-primary me-3"></i>
+        {% endif %}
+
+        <div>
+            <h2 class="text-white mb-0">{{ learning_category.name }}</h2>
+            <p class="text-muted mb-0">Всего курсов: {{ courses|length }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card bg-dark border-secondary text-white sticky-top" style="top: 20px;">
+                <div class="card-header border-secondary">
+                    Фильтр по технологиям
+                </div>
+                <div class="card-body p-2">
+                    <input type="text" class="form-control bg-secondary text-white border-0 mb-3" id="courseSearch" placeholder="Все курсы" onkeyup="filterCourses()">
+
+                    <div class="d-grid gap-2">
+                        {% for tag in tags %}
+                        <button class="btn btn-sm btn-outline-secondary text-start" onclick="filterByTag('{{ tag.name }}')">
+                            {{ tag.name }}
+                            <span class="badge bg-dark float-end">{{ tag.video_count|default:"-" }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="row row-cols-1 row-cols-md-2 g-4" id="coursesGrid">
+                {% for course in courses %}
+                <div class="col course-card" data-title="{{ course.title|lower }}" data-tags="{% for t in course.tags.all %}{{ t.name|lower }} {% endfor %}">
+                    <div class="card bg-dark border-secondary text-white h-100 hover-effect shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title text-primary text-truncate w-75" title="{{ course.title }}">
+                                    {{ course.title }}
+                                </h5>
+                                <span class="badge bg-secondary">{{ course.lesson_count }} уроков</span>
+                            </div>
+
+                            <p class="card-text text-muted small flex-grow-1">
+                                {{ course.description|striptags|truncatechars:100|default:"Автоматически импортирован" }}
+                            </p>
+
+                            <div class="mt-3">
+                                {% for tag in course.tags.all|slice:":3" %}
+                                    <span class="badge border border-secondary text-muted" style="background: transparent;">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+
+                            <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary w-100 mt-3">
+                                Перейти к курсу
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center text-muted py-5">
+                    <h4>Здесь пока пусто 🕸️</h4>
+                    <p>Загрузите курсы через Центр управления</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterCourses() {
+        let input = document.getElementById('courseSearch').value.toLowerCase();
+        let cards = document.getElementsByClassName('course-card');
+
+        for (let i = 0; i < cards.length; i++) {
+            let title = cards[i].getAttribute('data-title');
+            if (title.includes(input)) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+
+    function filterByTag(tagName) {
+        document.getElementById('courseSearch').value = tagName;
+        let input = tagName.toLowerCase();
+        let cards = document.getElementsByClassName('course-card');
+
+        for (let i = 0; i < cards.length; i++) {
+            let tags = cards[i].getAttribute('data-tags');
+            if (tags.includes(input)) {
+                cards[i].style.display = "";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
+<style>
+.hover-effect:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    transition: all 0.2s;
+}
+</style>
+{% endblock %}

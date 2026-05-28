@@ -1,0 +1,27 @@
+{% extends 'blog/base.html' %}
+{% block title %}Клипы{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="text-white mb-4">🔥 Клипы и Хайлайты</h2>
+    <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+        {% for clip in clips %}
+        <div class="col">
+            <div class="card bg-black text-white border-secondary h-100">
+                <div class="ratio ratio-9x16 bg-secondary"> {% if clip.cover %}
+                        <img src="{{ clip.cover.url }}" class="card-img-top" style="object-fit: cover;">
+                    {% endif %}
+                     <a href="{% url 'movie_detail' clip.pk %}" class="stretched-link d-flex align-items-center justify-content-center text-white text-decoration-none">
+                        <i class="bi bi-play-fill display-4 opacity-50"></i>
+                    </a>
+                </div>
+                <div class="card-body p-2">
+                    <p class="card-text small text-truncate">{{ clip.title }}</p>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+            <p class="text-muted">Клипов нет. Закиньте что-нибудь веселое!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

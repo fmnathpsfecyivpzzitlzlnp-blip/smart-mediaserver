@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекер привычек - Страница 3</title>
+    <style>
+        :root {
+            --bg-color: #1a1a24;
+            --card-bg: #252532;
+            --text-main: #ffffff;
+            --text-muted: #8b8b9b;
+            --accent-color: #3b82f6;
+            --divider: #323242;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .category {
+            margin-bottom: 40px;
+        }
+
+        .category-header {
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .category-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .category-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .habit-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 5px 20px;
+        }
+
+        .habit-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--divider);
+        }
+
+        .habit-item:last-child {
+            border-bottom: none;
+        }
+
+        .icon-box {
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            padding-right: 15px;
+        }
+
+        .habit-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .habit-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .checkbox-wrapper {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .checkbox-wrapper input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 24px;
+            width: 24px;
+            background-color: transparent;
+            border: 2px solid var(--text-muted);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-wrapper input:checked ~ .checkmark {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+            left: 8px;
+            top: 4px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-wrapper input:checked ~ .checkmark:after {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="category">
+            <div class="category-header">
+                <h2 class="category-title">Четкость по жизни</h2>
+                <p class="category-subtitle">У всего должно быть свое место</p>
+            </div>
+            <div class="habit-card">
+                <label class="habit-item">
+                    <div class="icon-box">🧽</div>
+                    <div class="text-content">
+                        <div class="habit-title">Проведите генеральную уборку</div>
+                        <div class="habit-desc">Вычистите каждый уголок своего дома</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🧹</div>
+                    <div class="text-content">
+                        <div class="habit-title">Экспресс-уборка</div>
+                        <div class="habit-desc">Выделите несколько минут на быструю уборку помещения</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🛏️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Заправляйте постель</div>
+                        <div class="habit-desc">Чистая постель — чистый разум</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🔥</div>
+                    <div class="text-content">
+                        <div class="habit-title">Выносите мусор</div>
+                        <div class="habit-desc">Не оставляйте дома беспорядок</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🍽️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Мойте посуду сразу</div>
+                        <div class="habit-desc">Тарелки должны быть всегда чистыми</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">✨</div>
+                    <div class="text-content">
+                        <div class="habit-title">Убирайте чаще</div>
+                        <div class="habit-desc">Сделайте уборку частью повседневного распорядка</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🪴</div>
+                    <div class="text-content">
+                        <div class="habit-title">Ухаживайте за садом</div>
+                        <div class="habit-desc">Поработайте в зеленой стране чудес</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🧺</div>
+                    <div class="text-content">
+                        <div class="habit-title">Чаще стирайте</div>
+                        <div class="habit-desc">Избавляйтесь от запахов и пятен</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🧊</div>
+                    <div class="text-content">
+                        <div class="habit-title">Уберите в холодильнике</div>
+                        <div class="habit-desc">Выбросьте лишние продукты, пока они не испортились</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">👕</div>
+                    <div class="text-content">
+                        <div class="habit-title">Раздавайте вещи</div>
+                        <div class="habit-desc">В том, что вам не нужно, могут нуждаться другие</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🗄️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Наводите порядок на рабочем месте</div>
+                        <div class="habit-desc">Чем меньше беспорядка, тем меньше стресса</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-header">
+                <h2 class="category-title">Повышайте производительность</h2>
+                <p class="category-subtitle">Применяйте стратегический подход к своим усилиям и времени</p>
+            </div>
+            <div class="habit-card">
+                <label class="habit-item">
+                    <div class="icon-box">💡</div>
+                    <div class="text-content">
+                        <div class="habit-title">Ставьте перед собой четкие цели</div>
+                        <div class="habit-desc">Цели должны быть конкретными</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🔊</div>
+                    <div class="text-content">
+                        <div class="habit-title">Работайте с белым шумом</div>
+                        <div class="habit-desc">Научный способ не отвлекаться</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">📋</div>
+                    <div class="text-content">
+                        <div class="habit-title">Составляйте список дел на завтра</div>
+                        <div class="habit-desc">Ваше время должно быть видимым и исчисляемым</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">⏹️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Делайте дела</div>
+                        <div class="habit-desc">Не откладывайте ничего на завтра</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🗄️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Наводите порядок на рабочем месте</div>
+                        <div class="habit-desc">Чем меньше беспорядка, тем меньше стресса</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">📱</div>
+                    <div class="text-content">
+                        <div class="habit-title">Структурируйте экранное время</div>
+                        <div class="habit-desc">Блокируйте экран и поддерживайте внимание</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🚶‍♂️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Вставайте рано</div>
+                        <div class="habit-desc">Светите раньше солнца</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">📨</div>
+                    <div class="text-content">
+                        <div class="habit-title">Просматривайте все</div>
+                        <div class="habit-desc">Проверяйте непрочитанные сообщения</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-header">
+                <h2 class="category-title">Процедура подготовки ко сну</h2>
+                <p class="category-subtitle">Пусть ваш сон сегодня будет сладким</p>
+            </div>
+            <div class="habit-card">
+                <label class="habit-item">
+                    <div class="icon-box">🚫</div>
+                    <div class="text-content">
+                        <div class="habit-title">Не ешьте перед сном</div>
+                        <div class="habit-desc">Вашему желудку тоже требуется хороший сон</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🌙</div>
+                    <div class="text-content">
+                        <div class="habit-title">Ложитесь спать рано</div>
+                        <div class="habit-desc">Раньше ляжешь — раньше встанешь</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🤸</div>
+                    <div class="text-content">
+                        <div class="habit-title">Растяжка</div>
+                        <div class="habit-desc">Снимайте напряжение и стресс</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🧘</div>
+                    <div class="text-content">
+                        <div class="habit-title">Практикуйте медитацию</div>
+                        <div class="habit-desc">Погружайтесь в свой внутренний мир</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🗣️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Занимайтесь дыхательными практиками</div>
+                        <div class="habit-desc">Каждый вдох и выдох должны быть осознанными</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">📓</div>
+                    <div class="text-content">
+                        <div class="habit-title">Ведите дневник</div>
+                        <div class="habit-desc">Это позволит вам лучше узнать себя</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">📖</div>
+                    <div class="text-content">
+                        <div class="habit-title">Читайте</div>
+                        <div class="habit-desc">Книг не бывает много</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🛁</div>
+                    <div class="text-content">
+                        <div class="habit-title">Примите ванну</div>
+                        <div class="habit-desc">Ощутите целительную силу теплой ванны</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🥛</div>
+                    <div class="text-content">
+                        <div class="habit-title">Пейте теплое молоко</div>
+                        <div class="habit-desc">Это поможет вам видеть хорошие сны</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🎶</div>
+                    <div class="text-content">
+                        <div class="habit-title">Засыпайте под спокойную музыку</div>
+                        <div class="habit-desc">Помогайте своему мозгу перейти в спящий режим</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-header">
+                <h2 class="category-title">Доброе утро</h2>
+                <p class="category-subtitle">Делайте то, что правильно, по утрам</p>
+            </div>
+            <div class="habit-card">
+                <label class="habit-item">
+                    <div class="icon-box">🚶‍♂️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Вставайте рано</div>
+                        <div class="habit-desc">Светите раньше солнца</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">👕</div>
+                    <div class="text-content">
+                        <div class="habit-title">Чаще наряжайтесь</div>
+                        <div class="habit-desc">Когда вы хорошо выглядите, вы хорошо себя чувствуете</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🍴</div>
+                    <div class="text-content">
+                        <div class="habit-title">Не пропускайте завтрак</div>
+                        <div class="habit-desc">Разбудите свой организм энергией пищи</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🛏️</div>
+                    <div class="text-content">
+                        <div class="habit-title">Заправляйте постель</div>
+                        <div class="habit-desc">Чистая постель — чистый разум</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🔥</div>
+                    <div class="text-content">
+                        <div class="habit-title">Выносите мусор</div>
+                        <div class="habit-desc">Не оставляйте дома беспорядок</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">😀</div>
+                    <div class="text-content">
+                        <div class="habit-title">Вы лучший!</div>
+                        <div class="habit-desc">Скажите это себе, когда проснетесь</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🤸</div>
+                    <div class="text-content">
+                        <div class="habit-title">Разогревайтесь</div>
+                        <div class="habit-desc">Зарядите себя энергией с утра</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-header">
+                <h2 class="category-title">Нарабатывайте самодисциплину</h2>
+                <p class="category-subtitle">Научитесь управлять собой</p>
+            </div>
+            <div class="habit-card">
+                <label class="habit-item">
+                    <div class="icon-box">📱</div>
+                    <div class="text-content">
+                        <div class="habit-title">Структурируйте экранное время</div>
+                        <div class="habit-desc">Блокируйте экран и поддерживайте внимание</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">✋</div>
+                    <div class="text-content">
+                        <div class="habit-title">Не тратьте деньги под влиянием «хочу»</div>
+                        <div class="habit-desc">Потребности и желания — это не одно и то же</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🚫</div>
+                    <div class="text-content">
+                        <div class="habit-title">Откажитесь от сахара</div>
+                        <div class="habit-desc">Вы увидите, как изменится ваше тело</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🍻</div>
+                    <div class="text-content">
+                        <div class="habit-title">Откажитесь от алкоголя</div>
+                        <div class="habit-desc">Без выпивки жизнь намного лучше</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">☕</div>
+                    <div class="text-content">
+                        <div class="habit-title">Ограничьте кофеин</div>
+                        <div class="habit-desc">Замените его источники на более здоровые продукты</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🚭</div>
+                    <div class="text-content">
+                        <div class="habit-title">Откажитесь от курения</div>
+                        <div class="habit-desc">«Всего одна» — это тоже курение</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🍳</div>
+                    <div class="text-content">
+                        <div class="habit-title">Откажитесь от жареной пищи</div>
+                        <div class="habit-desc">Простой способ сбросить вес</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+                <label class="habit-item">
+                    <div class="icon-box">🔒</div>
+                    <div class="text-content">
+                        <div class="habit-title">Не проводите все время за играми</div>
+                        <div class="habit-desc">В играх нет победителей</div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox">
+                        <span class="checkmark"></span>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

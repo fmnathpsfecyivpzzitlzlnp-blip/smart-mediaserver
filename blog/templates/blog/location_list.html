@@ -1,0 +1,12 @@
+{% extends "blog/base.html" %}
+{% block title %}Выбор локации{% endblock %}
+{% block content %}
+    <h2>Выберите локацию для просмотра</h2>
+    <div class="list-group">
+        {% for location in locations %}
+            <a href="{% url 'file_browser_root' location.slug %}" class="list-group-item list-group-item-action">
+                {{ location.name }}
+            </a>
+        {% endfor %}
+    </div>
+{% endblock %}

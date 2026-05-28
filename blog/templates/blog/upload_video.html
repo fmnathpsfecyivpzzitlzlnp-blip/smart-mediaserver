@@ -1,0 +1,42 @@
+{% extends "blog/base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">Загрузка видео</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Внимание:</strong> Большие файлы могут загружаться долго. Не закрывайте страницу до появления сообщения об успехе.
+                </div>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {{ field.errors }}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">Начать загрузку и обработку</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('input, select, textarea').forEach(el => el.classList.add('form-control'));
+    document.querySelector('input[type="checkbox"]')?.classList.remove('form-control');
+    document.querySelector('input[type="checkbox"]')?.classList.add('form-check-input');
+</script>
+{% endblock %}

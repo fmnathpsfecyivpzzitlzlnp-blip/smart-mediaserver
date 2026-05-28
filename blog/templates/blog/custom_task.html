@@ -1,0 +1,194 @@
+{% extends 'blog/base.html' %}
+{% block title %}Своё задание{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper {
+        --bg-light-blue: #e8f0fe;
+        --header-blue: #8b9dff;
+        --text-main: #2c3e50;
+        --text-muted: #5f6368;
+        --input-bg: #dce5fa;
+        --btn-purple: #8b9dff;
+        --check-green: #aed581;
+        --white: #ffffff;
+        
+        background-color: var(--bg-light-blue);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding-bottom: 30px;
+    }
+
+    .kids-app-wrapper .top-tabs { background-color: var(--header-blue); display: flex; padding-top: 40px; padding-left: 20px; gap: 10px; }
+    .kids-app-wrapper .tab { background-color: var(--bg-light-blue); padding: 10px 20px; border-radius: 12px 12px 0 0; font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .kids-app-wrapper .tab.add-tab { width: 40px; padding: 10px; font-size: 20px; color: var(--btn-purple); background-color: var(--input-bg); cursor: pointer; text-align: center; }
+
+    .kids-app-wrapper .page-header { display: flex; align-items: center; padding: 20px; font-size: 24px; font-weight: 700; }
+    .kids-app-wrapper .back-btn { margin-right: 15px; font-size: 24px; cursor: pointer; text-decoration: none; color: var(--text-main); }
+    .kids-app-wrapper .header-title-container { position: relative; display: inline-block; }
+
+    .kids-app-wrapper .premium-badge {
+        position: absolute; top: -5px; right: -65px;
+        background: linear-gradient(135deg, #a7b7ff, #8b9dff); color: white;
+        font-size: 10px; padding: 2px 6px; border-radius: 8px; transform: rotate(-5deg);
+        text-transform: uppercase; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Форма */
+    .kids-app-wrapper .form-container { padding: 0 20px; display: flex; flex-direction: column; }
+    .kids-app-wrapper .form-label { font-size: 16px; margin-bottom: 8px; font-weight: 400; color: var(--text-main); }
+    .kids-app-wrapper .input-box { background-color: var(--input-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; font-size: 16px; color: var(--text-muted); border: none; width: 100%; }
+    .kids-app-wrapper .input-box:focus { outline: none; box-shadow: 0 0 0 2px var(--btn-purple); }
+    .kids-app-wrapper .input-box.dropdown { display: flex; justify-content: space-between; align-items: center; color: var(--text-main); cursor: pointer; }
+
+    .kids-app-wrapper .verification-layout { display: flex; flex-direction: column; gap: 2px; }
+    .kids-app-wrapper .verification-label { font-size: 12px; color: var(--text-muted); }
+    .kids-app-wrapper .verification-value { font-size: 16px; color: var(--text-main); }
+
+    /* Радио-кнопки */
+    .kids-app-wrapper .radio-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+    .kids-app-wrapper .radio-item { display: flex; align-items: center; gap: 10px; font-size: 16px; cursor: pointer; }
+    .kids-app-wrapper .radio-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--btn-purple); display: flex; align-items: center; justify-content: center; background-color: transparent; }
+    .kids-app-wrapper .radio-icon.checked { background-color: var(--check-green); border-color: var(--check-green); color: white; font-size: 14px; font-weight: bold; }
+    .kids-app-wrapper .radio-icon.checked::after { content: "✓"; }
+
+    /* Счетчик монет */
+    .kids-app-wrapper .counter-container { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+    .kids-app-wrapper .counter-btn { width: 40px; height: 40px; border-radius: 50%; background-color: var(--white); color: var(--btn-purple); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 300; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
+    .kids-app-wrapper .counter-value { width: 40px; height: 40px; border-radius: 50%; background-color: var(--input-bg); color: var(--btn-purple); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+
+    /* Блок загрузки картинки */
+    .kids-app-wrapper .image-upload-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; margin-top: 10px; }
+    .kids-app-wrapper .image-placeholder-box { width: 150px; height: 100px; background-color: var(--white); border-radius: 16px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 10px; }
+    .kids-app-wrapper .add-image-btn { position: absolute; bottom: -15px; right: 10px; width: 40px; height: 40px; background-color: var(--btn-purple); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 2px 6px rgba(139, 157, 255, 0.4); cursor: pointer; }
+
+    .kids-app-wrapper .premium-btn { background-color: var(--input-bg); color: #7b8de6; text-align: center; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: 0.2s;}
+    .kids-app-wrapper .premium-btn:hover { background-color: #c8d5fa; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+
+        <div class="top-tabs">
+            <div class="tab">{{ child_name }}</div>
+            <div class="tab add-tab" title="Добавить ребенка">+</div>
+        </div>
+
+        <div class="page-header">
+            <a href="{% url 'setup_tasks' %}" class="back-btn">‹</a>
+            <div class="header-title-container">
+                Своё задание
+                <span class="premium-badge">Премиум</span>
+            </div>
+        </div>
+
+        <div class="form-container">
+
+            <label class="form-label">Название задания:</label>
+            <input id="taskTitle" type="text" class="input-box" placeholder="Пример: Полить цветы">
+
+            <label class="form-label">Описание:</label>
+            <textarea class="input-box" style="height: 80px; resize: none;" placeholder="Пример: Полей все цветы, кроме кактуса!"></textarea>
+
+            <label class="form-label">Регулярность:</label>
+            <div class="radio-group" id="regularity-group">
+                <div class="radio-item">
+                    <div class="radio-icon checked"></div>
+                    <span>Регулярное задание</span>
+                </div>
+                <div class="radio-item">
+                    <div class="radio-icon"></div>
+                    <span>Единоразовая задача</span>
+                </div>
+            </div>
+
+            <label class="form-label">Дни выполнения задания:</label>
+            <div class="input-box dropdown">
+                <span>Выберите дни</span>
+                <span class="chevron">⌄</span>
+            </div>
+
+            <label class="form-label">Награда в монетах:</label>
+            <div class="counter-container">
+                <div class="counter-btn" id="coin-minus">−</div>
+                <div class="counter-value" id="coin-val">1</div>
+                <div class="counter-btn" id="coin-plus">+</div>
+            </div>
+
+            <label class="form-label">Способ проверки задания:</label>
+            <div class="input-box dropdown">
+                <div class="verification-layout">
+                    <span class="verification-label">Выберите способ</span>
+                    <span class="verification-value">Фото</span>
+                </div>
+                <span class="chevron">⌄</span>
+            </div>
+
+            <div class="image-upload-wrapper">
+                <div class="image-placeholder-box">
+                    🛏️🧸
+                    <div class="add-image-btn">+</div>
+                </div>
+                <div class="image-upload-text">Добавьте картинку задания</div>
+            </div>
+
+            <div class="premium-btn" style="background-color: var(--btn-purple); color: white;" onclick="saveCustomTask()">Сохранить задание</div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Оживляем переключатели "Регулярность"
+    const radioItems = document.querySelectorAll('.radio-item');
+    radioItems.forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.radio-icon').forEach(icon => icon.classList.remove('checked'));
+            item.querySelector('.radio-icon').classList.add('checked');
+        });
+    });
+
+    // Оживляем счетчик монет
+    const coinVal = document.getElementById('coin-val');
+    document.getElementById('coin-minus').addEventListener('click', () => {
+        let val = parseInt(coinVal.innerText);
+        if (val > 1) coinVal.innerText = val - 1;
+    });
+    document.getElementById('coin-plus').addEventListener('click', () => {
+        let val = parseInt(coinVal.innerText);
+        coinVal.innerText = val + 1;
+    });
+
+    async function saveCustomTask() {
+        const title = document.getElementById('taskTitle').value;
+        const reward = document.getElementById('coin-val').innerText;
+
+        if(!title) { alert('Введите название задания!'); return; }
+
+        // Случайная иконка для красоты (можно потом сделать выбор)
+        const icons = ['🌟', '🧸', '🧽', '📚', '🏃‍♂️', '🎨'];
+        const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+
+        const res = await fetch("{% url 'add_child_task_api' %}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({title: title, reward: reward, icon: randomIcon})
+        });
+        const data = await res.json();
+
+        if(data.status === 'ok') {
+            window.location.href = "{% url 'setup_tasks' %}"; // Возвращаемся назад
+        } else {
+            alert('Ошибка: ' + data.message);
+        }
+    }
+
+</script>
+{% endblock %}

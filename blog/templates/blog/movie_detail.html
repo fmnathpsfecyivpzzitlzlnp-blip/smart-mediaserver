@@ -1,0 +1,364 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block title %}{{ movie.title }}{% endblock %}
+
+{% block extra_head %}
+    <link href="https://vjs.zencdn.net/8.12.0/video-js.css" rel="stylesheet" />
+    <style>
+        .player-container {
+            max-width: 960px;
+            margin: 2rem auto;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+            margin-top: 2rem;
+        }
+        @media (max-width: 992px) {
+            .details-grid { grid-template-columns: 1fr; }
+        }
+        .details-cover img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .details-section {
+            margin-top: 2rem;
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .tag-list .badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.9em;
+            padding: 0.5em 0.8em;
+        }
+        .tag-list .badge .btn-close {
+            margin-left: 8px;
+            cursor:pointer;
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .note-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .note-item:last-child {
+            border-bottom: none;
+        }
+        .note-timestamp {
+            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 15px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .note-timestamp:hover {
+            background-color: #0d6efd;
+            color: white;
+        }
+        /* Стили для маркеров на таймлайне */
+        .vjs-note-marker {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            height: 100%; /* На всю высоту полосы прокрутки */
+            background-color: #ffc107; /* Яркий желтый цвет, как у прогресс-бара */
+            opacity: 0.7;
+            pointer-events: none; /* Чтобы не мешать кликам по таймлайну */
+            transform: translateX(-50%); /* Центрируем маркер */
+        }
+        /* Делаем полосу прокрутки "контейнером" для наших маркеров */
+        .video-js .vjs-progress-control .vjs-progress-holder {
+            position: relative;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="details-grid">
+    <div class="details-cover">
+        {% if movie.cover %}
+            <img src="{{ movie.cover.url }}" alt="{{ movie.title }}">
+        {% else %}
+            <img src="{% static 'blog/images/no_cover.png' %}" alt="Нет обложки">
+        {% endif %}
+    </div>
+    <div class="details-info">
+        <h1>{{ movie.title }}</h1>
+        <p><strong>Год:</strong> {{ movie.year|default:"-" }} | <strong>Рейтинг:</strong> {{ movie.rating|floatformat:1|default:"-" }}/10</p>
+        <p><strong>Страна:</strong> {% for c in movie.countries.all %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</p>
+        <p><strong>Жанр:</strong> {% for g in movie.genres.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</p>
+        <p><strong>Режиссер:</strong> {% for d in movie.directors.all %}{{ d.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</p>
+        <p><strong>В ролях:</strong> {% for a in movie.actors.all %}{{ a.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</p>
+        <hr>
+        <p>{{ movie.description|linebreaksbr|default:"Описание отсутствует." }}</p>
+    </div>
+    <div class="d-flex gap-3 mb-4 mt-3">
+    <button class="btn btn-outline-light toggle-list-btn"
+            data-id="{{ movie.id }}"
+            data-type="favorites"
+            title="Добавить в избранное">
+        <i class="bi {% if request.user in movie.favorites.all %}bi-heart-fill text-danger{% else %}bi-heart{% endif %} fs-4"></i>
+        <span class="ms-1">Любимое</span>
+    </button>
+
+    <button class="btn btn-outline-light toggle-list-btn"
+            data-id="{{ movie.id }}"
+            data-type="watchlist"
+            title="Смотреть позже">
+        <i class="bi {% if request.user in movie.watchlist.all %}bi-clock-fill text-warning{% else %}bi-clock{% endif %} fs-4"></i>
+        <span class="ms-1">Позже</span>
+    </button>
+</div>
+</div>
+<button class="btn btn-outline-warning mt-3" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+    📅 Запланировать просмотр
+</button>
+
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Когда посмотрим?</h5></div>
+            <div class="modal-body">
+                <label>Выберите дату:</label>
+                <input type="date" id="scheduleDate" class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="scheduleVideo({{ movie.pk }})">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="player-container">
+    {% include "blog/partials/player.html" with movie=movie %}
+</div>
+
+{% if user.is_authenticated %}
+    <form style="display: none;">{% csrf_token %}</form>
+
+    <div class="details-section">
+        <h3>Теги</h3>
+        <div id="tag-list-container" class="mb-3 d-flex flex-wrap gap-2">
+            {% for tag in assigned_tags %}<span class="badge bg-secondary" id="tag-badge-{{ tag.pk }}">{{ tag.name }}<span class="btn-close remove-tag-btn" data-tag-id="{{ tag.pk }}"></span></span>{% endfor %}
+            <p id="no-tags-placeholder" class="text-muted m-0" {% if assigned_tags %}style="display:none;"{% endif %}>Теги еще не добавлены.</p>
+        </div>
+        <div class="row g-2">
+            <div class="col-sm-6"><form id="add-tag-form"><div class="input-group"><select id="tag-select" class="form-select"><option value="" selected disabled>Выбрать тег...</option>{% for tag in unassigned_tags %}<option value="{{ tag.pk }}">{{ tag.name }}</option>{% endfor %}</select><button type="submit" class="btn btn-primary">Добавить</button></div></form></div>
+            <div class="col-sm-6"><form id="create-tag-form"><div class="input-group"><input type="text" id="new-tag-name" class="form-control" placeholder="Или создать новый..."><button type="submit" class="btn btn-outline-success">Создать</button></div></form></div>
+        </div>
+    </div>
+
+    <div class="details-section">
+        <h3>Заметки к видео</h3>
+        <div id="notes-list">
+            {% for note in notes %}
+                <div class="note-item" id="note-{{ note.id }}"><span class="note-timestamp" data-timestamp="{{ note.timestamp }}"></span><div>{{ note.text|linebreaksbr }}</div></div>
+            {% empty %}
+                <p id="no-notes-placeholder" class="text-muted">Для этого видео пока нет заметок.</p>
+            {% endfor %}
+        </div><hr>
+        <h4>Добавить новую заметку</h4>
+        <form id="add-note-form">
+            <div class="mb-3"><textarea id="note-text-input" class="form-control" rows="3" placeholder="Введите текст заметки..."></textarea></div>
+            <button type="submit" class="btn btn-primary">Добавить на текущем времени</button>
+        </form>
+    </div>
+{% endif %}
+
+<div class="modal fade" id="continueModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content"><div class="modal-header"><h5 class="modal-title">Продолжить просмотр?</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p id="continue-modal-text"></p></div><div class="modal-footer"><button type="button" class="btn btn-secondary" id="restartBtn" data-bs-dismiss="modal">Начать с начала</button><button type="button" class="btn btn-primary" id="continueBtn">Продолжить</button></div></div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Получаем данные о заметках, переданные из Django
+    const notesData = [
+        {% for note in notes %}
+        {
+            timestamp: {{ note.timestamp }},
+            text: "{{ note.text|escapejs|truncatechars_html:60 }}" // escapejs защищает от ошибок, truncatechars_html обрезает текст
+        },
+        {% endfor %}
+    ];
+
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+    const videoElement = document.getElementById('my-video');
+    if (!videoElement) return;
+
+    const player = videojs(videoElement, { controls: true, autoplay: false, preload: 'auto', fluid: true });
+    const videoId = videoElement.dataset.videoId;
+
+    function formatTime(totalSeconds) { if(isNaN(totalSeconds)) return "00:00"; const minutes = Math.floor(totalSeconds / 60); const seconds = Math.floor(totalSeconds % 60); return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }
+
+    // --- ЛОГИКА "ПРОДОЛЖИТЬ ПРОСМОТР" И МАРКЕРОВ НА ТАЙМЛАЙНЕ ---
+    player.ready(function() {
+        // "Продолжить просмотр?"
+        const watchHistoryTimestamp = {{ movie.watchhistory_set.first.last_timestamp|default:'null' }};
+        const continueModalEl = document.getElementById('continueModal');
+        if (watchHistoryTimestamp && watchHistoryTimestamp > 5 && continueModalEl) {
+            document.getElementById('continue-modal-text').textContent = `Вы остановились на ${formatTime(watchHistoryTimestamp)}. Хотите продолжить?`;
+            const continueModal = new bootstrap.Modal(continueModalEl);
+            document.getElementById('continueBtn').onclick = () => { player.currentTime(watchHistoryTimestamp); player.play(); continueModal.hide(); };
+            document.getElementById('restartBtn').onclick = () => { player.play(); continueModal.hide(); };
+            continueModal.show();
+        }
+
+        // --- Логика рисования маркеров ---
+        const seekBar = player.controlBar.progressControl.seekBar.el();
+        function drawMarkers() {
+            seekBar.querySelectorAll('.vjs-note-marker').forEach(m => m.remove());
+            const duration = player.duration();
+            if (!duration) return;
+
+            notesData.forEach(note => {
+                const marker = document.createElement('div');
+                marker.className = 'vjs-note-marker';
+                marker.style.left = `${(note.timestamp / duration) * 100}%`;
+                marker.title = note.text; // Всплывающая подсказка
+                seekBar.appendChild(marker);
+            });
+        }
+        player.on('loadedmetadata', drawMarkers); // Рисуем, когда видео загружено
+        window.addEventListener('resize', drawMarkers); // Перерисовываем при изменении размера окна
+        drawMarkers(); // Первый вызов
+    });
+
+    // --- СОХРАНЕНИЕ ПРОГРЕССА ПРОСМОТРА ---
+    let lastUpdateTime = 0;
+    player.on('timeupdate', function() {
+        const currentTime = Math.floor(this.currentTime());
+        if (currentTime > 0 && (currentTime > lastUpdateTime + 15)) {
+            lastUpdateTime = currentTime;
+            fetch(`/api/videos/${videoId}/progress/`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }, body: JSON.stringify({ timestamp: currentTime }) }).catch(err => console.error(err));
+        }
+    });
+
+    // --- ЛОГИКА ЗАМЕТОК ---
+    const notesList = document.getElementById('notes-list');
+    document.querySelectorAll('.note-timestamp').forEach(span => { span.textContent = formatTime(parseInt(span.dataset.timestamp, 10)); });
+    if (notesList) { notesList.addEventListener('click', e => { if(e.target.classList.contains('note-timestamp')) { player.currentTime(e.target.dataset.timestamp); player.play(); } }); }
+
+    const addNoteForm = document.getElementById('add-note-form');
+    if (addNoteForm) {
+        addNoteForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const textInput = document.getElementById('note-text-input');
+            const text = textInput.value.trim();
+            const timestamp = Math.floor(player.currentTime());
+            if (!text) return;
+            fetch("{% url 'add_note' %}", { method:'POST', headers: {'Content-Type':'application/json','X-CSRFToken': csrfToken}, body: JSON.stringify({video_id: videoId, timestamp: timestamp, text: text}) })
+            .then(r=>r.json()).then(d=>{
+                if(d.status==='ok') {
+                    document.getElementById('no-notes-placeholder')?.remove();
+                    const timeString=formatTime(d.note.timestamp);
+                    const newNoteHtml=`<div class="note-item"><span class="note-timestamp" data-timestamp="${d.note.timestamp}">${timeString}</span><div>${d.note.text_html}</div></div>`;
+                    notesList.insertAdjacentHTML('beforeend', newNoteHtml);
+
+                    // Обновляем маркеры на таймлайне
+                    notesData.push({ timestamp: d.note.timestamp, text: text });
+                    player.trigger('loadedmetadata'); // Вызываем событие, чтобы перерисовать маркеры
+
+                    textInput.value='';
+                }
+            });
+        });
+    }
+    // --- ЛОГИКА ТЕГОВ ---
+    const addTagForm = document.getElementById('add-tag-form');
+    const createTagForm = document.getElementById('create-tag-form');
+    const tagListContainer = document.getElementById('tag-list-container');
+    const tagSelect = document.getElementById('tag-select');
+    const newTagNameInput = document.getElementById('new-tag-name');
+
+    function renderNewTag(tag) {
+        document.getElementById('no-tags-placeholder')?.remove();
+        const newTagHtml = `<span class="badge bg-secondary" id="tag-badge-${tag.id}">${tag.name}<span class="btn-close remove-tag-btn" data-tag-id="${tag.id}"></span></span>`;
+        tagListContainer.insertAdjacentHTML('beforeend', newTagHtml);
+    }
+
+    if (addTagForm) { addTagForm.addEventListener('submit', e => { e.preventDefault(); const tagId=tagSelect.value; if(!tagId) return; fetch(`/api/videos/${videoId}/tags/add/`, { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}, body:JSON.stringify({tag_id:tagId})}).then(r=>r.json()).then(d=>{if(d.status==='ok'){renderNewTag(d.tag); tagSelect.querySelector(`option[value="${tagId}"]`)?.remove();tagSelect.value="";}});});}
+    if (createTagForm) { createTagForm.addEventListener('submit', e => { e.preventDefault(); const tagName = newTagNameInput.value.trim(); if (!tagName) return; fetch("{% url 'create_tag_api' %}", { method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken}, body: JSON.stringify({tag_name:tagName, video_id:videoId})}).then(r=>r.json()).then(d=>{if(d.status==='ok'){renderNewTag(d.tag);newTagNameInput.value = "";if (!d.created_new){ tagSelect.querySelector(`option[value="${d.tag.id}"]`)?.remove();}}});});}
+    if (tagListContainer) { tagListContainer.addEventListener('click', e => { if(e.target.classList.contains('remove-tag-btn')){ const tagId=e.target.dataset.tagId; if(!confirm('Удалить тег с этого видео?'))return; fetch(`/api/videos/${videoId}/tags/remove/`,{ method: 'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify({tag_id:tagId})}).then(r=>r.json()).then(d=>{if(d.status==='ok'){document.getElementById(`tag-badge-${tagId}`)?.remove(); tagSelect.insertAdjacentHTML('beforeend',`<option value="${d.removed_tag_id}">${d.removed_tag_name}</option>`);}});}}); }
+
+});
+
+function scheduleVideo(id) {
+    const date = document.getElementById('scheduleDate').value;
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+    fetch(`/api/videos/${id}/schedule/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+        body: JSON.stringify({date: date})
+    }).then(r => r.json()).then(data => {
+        alert(data.message);
+        bootstrap.Modal.getInstance(document.getElementById('scheduleModal')).hide();
+    });
+}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '{{ csrf_token }}';
+
+    // Обработчик для кнопок списков
+    document.querySelectorAll('.toggle-list-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const videoId = this.dataset.id;
+            const listType = this.dataset.type;
+            const icon = this.querySelector('i');
+
+            // Создаем данные для отправки
+            const formData = new FormData();
+            formData.append('list_type', listType);
+
+            try {
+                const response = await fetch(`/api/video/${videoId}/toggle-list/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    // Обновляем иконки в зависимости от ответа
+                    if (listType === 'favorites') {
+                        icon.classList.toggle('bi-heart', !data.is_active);
+                        icon.classList.toggle('bi-heart-fill', data.is_active);
+                        icon.classList.toggle('text-danger', data.is_active);
+                    } else if (listType === 'watchlist') {
+                        icon.classList.toggle('bi-clock', !data.is_active);
+                        icon.classList.toggle('bi-clock-fill', data.is_active);
+                        icon.classList.toggle('text-warning', data.is_active);
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Джарвис не смог обновить список. Проверьте соединение.');
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

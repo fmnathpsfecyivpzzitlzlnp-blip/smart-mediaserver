@@ -1,0 +1,418 @@
+{% extends 'blog/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} | Обучение{% endblock %}
+
+{% block extra_head %}
+    <link href="https://vjs.zencdn.net/8.12.0/video-js.css" rel="stylesheet" />
+    <style>
+        .video-js { width: 100% !important; height: 100% !important; }
+        .modal-body.p-0 .video-js { width: 100%; height: auto; }
+        .hover-effect:hover { background-color: rgba(255,255,255,0.05) !important; }
+    </style>
+{% endblock %}
+
+{% block page_header %}
+    <nav aria-label="breadcrumb" style="--bs-breadcrumb-divider: '>';" class="fs-6 mb-2">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'learning_root' %}" class="text-decoration-none text-muted">Обучение</a></li>
+        {% if course.learning_category %}
+        <li class="breadcrumb-item"><a href="{% url 'learning_category_detail' course.learning_category.slug %}" class="text-decoration-none text-muted">{{ course.learning_category.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active text-white">{{ course.title }}</li>
+      </ol>
+    </nav>
+    <h2 class="text-white">{{ course.title }}</h2>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card bg-dark border-secondary text-white shadow-sm sticky-top" style="top: 20px;">
+            <div class="card-body">
+                <h5 class="card-title text-primary">О курсе</h5>
+                <div class="mb-3">
+                    {% for tag in course.tags.all %}
+                        <span class="badge rounded-pill border border-secondary" style="background-color: {{ tag.color|default:'#2c3034' }};">
+                            {{ tag.name }}
+                        </span>
+                    {% endfor %}
+                </div>
+                <div class="card-text text-light mt-3">
+                    {% if course.description %}{{ course.description|safe }}{% else %}<p class="text-muted small">Авто-импорт</p>{% endif %}
+                </div>
+                <div class="mt-4 p-3 bg-secondary bg-opacity-25 rounded border border-secondary">
+                    <h6 class="text-white mb-3"><i class="bi bi-pie-chart-fill me-2"></i>Прогресс</h6>
+                    <div class="progress mb-3" style="height: 6px; background-color: #444;">
+                        <div class="progress-bar bg-success" style="width: {{ stats.percent }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-1"><span>Просмотрено:</span><span>{{ stats.watched }}</span></div>
+                    <div class="d-flex justify-content-between small mb-1"><span>Осталось:</span><span>{{ stats.left }}</span></div>
+                    <div class="d-flex justify-content-between small border-top border-secondary pt-1 mt-2"><span>Всего:</span><span>{{ stats.total }}</span></div>
+                </div>
+                <hr class="border-secondary">
+                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#studyPlanModal">
+                    <i class="bi bi-calendar-check-fill me-2"></i> Спланировать график
+                </button>
+                {% if user.is_staff %}
+                <hr class="border-secondary mt-3 mb-3">
+                <button class="btn btn-outline-info w-100 mb-2" data-bs-toggle="modal" data-bs-target="#moveCourseModal">
+                    <i class="bi bi-folder-symlink me-2"></i> Переместить курс
+                </button>
+
+                <hr class="border-secondary mt-3 mb-3">
+                <button class="btn btn-outline-danger w-100" onclick="deleteCourse({{ course.id }})">
+                    <i class="bi bi-trash3 me-2"></i> Удалить курс
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="mb-3 d-flex flex-wrap gap-2 filter-buttons">
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-light active" onclick="filterFiles('all', this)">Все</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="filterFiles('type:video', this)">Видео</button>
+                <button class="btn btn-sm btn-outline-info" onclick="filterFiles('type:doc', this)">Текст</button>
+                <button class="btn btn-sm btn-outline-warning" onclick="filterFiles('type:archive', this)">Архивы</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-warning" onclick="filterFiles('status:in_progress', this)">В процессе</button>
+                <button class="btn btn-sm btn-outline-success" onclick="filterFiles('status:completed', this)">Изучено</button>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary text-white shadow-sm">
+            <div class="card-header border-secondary d-flex justify-content-between">
+                <h5 class="mb-0"><i class="bi bi-collection-play me-2"></i>Материалы</h5>
+                <span class="badge bg-secondary">{{ files_data|length }} файлов</span>
+            </div>
+            <div class="list-group list-group-flush" id="filesList">
+                {% for item in files_data %}
+    <div class="list-group-item bg-dark text-white border-secondary p-0 d-flex align-items-stretch hover-effect file-item"
+         data-type="{{ item.type_group }}"
+         data-status="{{ item.status_group }}">
+
+        <div class="d-flex align-items-center flex-grow-1 p-3"
+             style="cursor: pointer;"
+             onclick="{% if item.type_group == 'video' or '.ts' in item.lesson.movie_path.lower %}
+                        openPlayer('{{ item.lesson.title|escapejs }}', '{% url 'serve_video_stream' item.lesson.id %}', {{ item.lesson.id }}, {{ item.timestamp|default:0 }})
+                      {% else %}
+                        window.location.href='{% url 'serve_video_stream' item.lesson.id %}?download=1'
+                      {% endif %}">
+
+            <div class="me-3" style="width: 24px;">
+                {% if item.is_finished %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+                {% elif item.timestamp > 0 %}<i class="bi bi-circle-half text-warning fs-5"></i>
+                {% else %}<i class="bi bi-circle text-muted fs-5 opacity-25"></i>{% endif %}
+            </div>
+
+            <div class="me-3 fs-4"><i class="bi {{ item.icon_class }}"></i></div>
+
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">{{ item.lesson.title }}</span>
+                    {% if item.lesson.duration > 0 %}
+                        <span class="badge bg-secondary ms-2 text-white-50 fw-normal">
+                            {{ item.lesson.duration_formatted }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <a href="{% url 'serve_video_stream' item.lesson.id %}?download=1"
+           class="p-3 text-muted d-flex align-items-center border-start border-secondary"
+           title="Скачать файл для внешнего плеера">
+            <i class="bi bi-download fs-5"></i>
+        </a>
+    </div>
+{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-black border-secondary">
+            <div class="modal-header border-secondary py-2">
+                <h6 class="modal-title text-white" id="videoTitle">Просмотр</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="min-height: 480px; display: flex; align-items: center; justify-content: center;">
+                <video id="mainPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="studyPlanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">План обучения</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="studyPlanForm">
+                    <div class="mb-3">
+                        <label class="form-label small">Дата старта:</label>
+                        <input type="date" id="planStartDate" class="form-control bg-secondary text-white border-0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Минут в день:</label>
+                        <input type="number" id="planMinutes" class="form-control bg-secondary text-white border-0" value="45" step="15">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block small">Дни занятий:</label>
+                        <div class="btn-group w-100 shadow-sm">
+                            {% for i in "0123456" %}
+                            <input type="checkbox" class="btn-check" name="day" id="d{{i}}" value="{{i}}" {% if i < "5" %}checked{% endif %}>
+                            <label class="btn btn-outline-secondary py-1" for="d{{i}}">
+                                {% if i == "0" %}Пн{% elif i == "1" %}Вт{% elif i == "2" %}Ср{% elif i == "3" %}Чт{% elif i == "4" %}Пт{% elif i == "5" %}Сб{% else %}Вс{% endif %}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <hr class="border-secondary">
+                    <div class="mb-3">
+                        <label class="form-label text-info small fw-bold">РЕЖИМ:</label>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="planMode" id="m1" value="sprint" checked><label class="form-check-label" for="m1">Спринт (группировка)</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="planMode" id="m2" value="step"><label class="form-check-label" for="m2">Шаг за шагом (1 файл в день)</label></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-warning small fw-bold">ГОРИЗОНТ:</label>
+                        <select id="planRange" class="form-select bg-secondary text-white border-0">
+                            <option value="14" selected>2 недели</option>
+                            <option value="30">1 месяц</option>
+                            <option value="0">Весь курс</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary"><button id="savePlanBtn" class="btn btn-success w-100">🚀 Поехали!</button></div>
+        </div>
+    </div>
+</div> <div class="modal fade" id="moveCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-folder-symlink text-info me-2"></i>Переместить курс</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-2">Текущая категория:</p>
+                <p class="fs-5 fw-bold">{{ course.learning_category.name }}</p>
+
+                <div class="mb-3 mt-4">
+                    <label class="form-label small text-info">Выберите новую категорию:</label>
+                    <select id="newCategorySelect" class="form-select bg-secondary text-white border-0">
+                        <option value="" disabled selected>-- Выберите из списка --</option>
+                        {% for cat in all_categories %}
+                            {% if cat.id != course.learning_category.id %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Отмена</button>
+                <button id="confirmMoveBtn" class="btn btn-info text-dark fw-bold">Переместить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>
+<script>
+    let player = null;
+    let currentVideoId = null;
+    let lastUpdateTime = 0;
+    const csrfToken = '{{ csrf_token }}';
+
+    // 1. ПЛЕЕР
+    function openPlayer(title, url, videoId, startTime) {
+    document.getElementById('videoTitle').textContent = title;
+    currentVideoId = videoId;
+
+    if (videojs.getPlayer('mainPlayer')) { videojs.getPlayer('mainPlayer').dispose(); }
+    document.querySelector('#videoModal .modal-body').innerHTML = '<video id="mainPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>';
+
+    new bootstrap.Modal(document.getElementById('videoModal')).show();
+
+    // --- ОПРЕДЕЛЯЕМ ТИП ДЛЯ ПЛЕЕРА ---
+    let mimeType = 'video/mp4'; // По умолчанию
+    if (url.toLowerCase().endsWith('.mkv')) {
+        mimeType = 'video/x-matroska';
+    } else if (url.toLowerCase().endsWith('.ts') || url.includes('.ts')) {
+        mimeType = 'video/mp2t'; // Тип для TS
+    }
+
+    player = videojs('mainPlayer', {
+        fluid: true,
+        playbackRates: [0.5, 1, 1.5, 2],
+        sources: [{ src: url, type: mimeType }]
+    });
+
+    player.ready(function() {
+        if (startTime > 0) player.currentTime(startTime);
+        player.play().catch(() => {});
+    });
+
+        player.on('timeupdate', function() {
+            const t = Math.floor(player.currentTime());
+            if (t > 0 && (t > lastUpdateTime + 10)) {
+                lastUpdateTime = t;
+                saveProgress(currentVideoId, t);
+            }
+        });
+
+        player.on('ended', () => saveProgress(currentVideoId, player.currentTime(), true));
+    }
+
+    // Добавили параметр isFinished
+    function saveProgress(videoId, time, isFinished = false) {
+        if(!videoId) return;
+        fetch(`/api/videos/${videoId}/progress/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            // Теперь отправляем флаг на сервер
+            body: JSON.stringify({timestamp: Math.floor(time), is_finished: isFinished})
+        });
+    }
+
+    document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
+        if (videojs.getPlayer('mainPlayer')) {
+            videojs.getPlayer('mainPlayer').dispose();
+        }
+        player = null;
+    });
+
+    // 2. ФИЛЬТРАЦИЯ
+    function filterFiles(filterStr, btn) {
+        document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        let key = 'all', value = 'all';
+        if (filterStr.includes(':')) [key, value] = filterStr.split(':');
+
+        document.querySelectorAll('.file-item').forEach(item => {
+            let show = (key === 'all') || (item.dataset[key] === value);
+            item.classList.toggle('d-none', !show);
+            item.classList.toggle('d-flex', show);
+        });
+    }
+
+    // 3. ПЛАНИРОВЩИК
+    document.addEventListener('DOMContentLoaded', function() {
+        const startInput = document.getElementById('planStartDate');
+        if(startInput) startInput.valueAsDate = new Date();
+
+        const saveBtn = document.getElementById('savePlanBtn');
+        if(saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const days = Array.from(document.querySelectorAll('input[name="day"]:checked'))
+                                  .map(cb => parseInt(cb.value));
+
+                if (days.length === 0) { alert("Выберите дни!"); return; }
+
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Создаем...';
+
+                const payload = {
+                    start_date: document.getElementById('planStartDate').value,
+                    minutes: document.getElementById('planMinutes').value,
+                    days: days,
+                    mode: document.querySelector('input[name="planMode"]:checked').value,
+                    range: document.getElementById('planRange').value
+                };
+
+                try {
+                    const res = await fetch("{% url 'create_study_plan_api' course.slug %}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (data.status === 'ok') {
+                         alert(data.message);
+                         window.location.href = "{% url 'organizer' %}";
+                    } else {
+                        alert("Ошибка: " + data.message);
+                        saveBtn.disabled = false; saveBtn.innerHTML = '🚀 Поехали!';
+                    }
+                } catch (e) {
+                    alert("Ошибка сети");
+                    saveBtn.disabled = false; saveBtn.innerHTML = '🚀 Поехали!';
+                }
+            });
+        }
+    });
+
+    // 4. УДАЛЕНИЕ КУРСА
+    function deleteCourse(courseId) {
+        if(confirm("🚨 Вы уверены, что хотите удалить весь курс и все его уроки из базы? (Файлы на диске останутся целы). Это действие необратимо!")) {
+            fetch(`/api/course/${courseId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'ok') {
+                    // Перекидываем пользователя обратно в корень Центра Обучения
+                    window.location.href = "{% url 'learning_root' %}";
+                } else {
+                    alert("Ошибка: " + data.message);
+                }
+            })
+            .catch(err => alert("Сетевая ошибка при удалении"));
+        }
+    }
+
+    // ПЕРЕМЕЩЕНИЕ КУРСА
+    document.getElementById('confirmMoveBtn')?.addEventListener('click', function() {
+        const newCatId = document.getElementById('newCategorySelect').value;
+        const btn = this;
+
+        if (!newCatId) {
+            alert("Пожалуйста, выберите категорию.");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Перемещение...';
+
+        fetch(`/api/course/{{ course.id }}/move/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ category_id: newCatId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                window.location.reload(); // Перезагружаем страницу, чтобы увидеть новую хлебную крошку
+            } else {
+                alert("Ошибка: " + data.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Переместить';
+            }
+        })
+        .catch(err => {
+            alert("Ошибка сети");
+            btn.disabled = false;
+            btn.innerHTML = 'Переместить';
+        });
+    });
+</script>
+{% endblock %}

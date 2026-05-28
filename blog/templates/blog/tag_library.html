@@ -1,0 +1,190 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Библиотека тегов{% endblock %}
+
+{% block extra_head %}
+<style>
+.tag-category h4 { border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-top: 2rem; margin-bottom: 1rem; color: #495057; display: flex; justify-content: space-between; align-items: center; }
+.tag-badge-wrapper { display: inline-block; position: relative; }
+.tag-badge-wrapper:hover .tag-controls { opacity: 1; transform: translateY(0); }
+.tag-badge { text-decoration: none; font-size: 0.9em; padding: 0.5em 0.8em; margin: 4px; color: white !important; display: inline-flex; align-items: center; transition: all 0.2s ease; border-radius: 0.375rem; }
+.tag-badge:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.tag-count { margin-left: 8px; background-color: rgba(0,0,0,0.2); padding: 0.1em 0.4em; border-radius: 10px; font-size: 0.9em; }
+.tag-controls { position: absolute; top: -10px; right: 0; background: #fff; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); opacity: 0; transition: all 0.2s ease; transform: translateY(-5px); z-index: 10; padding: 2px; display: flex; }
+.tag-controls button { background: none; border: none; cursor: pointer; padding: 4px 6px; }
+.tag-controls button:hover { background-color: #f0f0f0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Библиотека тегов</h1>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#tagModal" id="create-tag-btn">
+        + Создать тег
+    </button>
+</div>
+
+<div id="tag-library-container">
+    <!-- Отображаем категории, в которых ТОЧНО есть теги -->
+    {% for category in categories_with_tags %}
+    <div class="tag-category" data-category-id="{{ category.pk }}">
+        <h4>{{ category.name }}</h4>
+        <div class="tags-container">
+            {% for tag in category.tags.all %}
+                {% include 'blog/partials/tag_badge.html' %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Отображаем блок "Неподшитые", только если в нем есть теги -->
+    {% if tags_without_category %}
+    <div class="tag-category" data-category-id="null">
+        <h4>Неподшитые теги</h4>
+        <div class="tags-container">
+            {% for tag in tags_without_category %}
+                 {% include 'blog/partials/tag_badge.html' %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Сообщение "Тегов нет" показывается, только если ОБА списка пусты -->
+{% if not categories_with_tags and not tags_without_category %}
+    <div id="no-tags-placeholder" class="alert alert-info">Тегов пока нет.</div>
+{% endif %}
+{% csrf_token %}
+
+<!-- Модальное окно (HTML остается почти таким же, меняем только цикл для категорий) -->
+<div class="modal fade" id="tagModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="tagModalLabel">Создать тег</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form id="tagForm">
+                <div class="modal-body">
+                    <input type="hidden" id="tagIdInput">
+                    <div class="mb-3">
+                        <label for="tagNameInput" class="form-label">Название</label>
+                        <input type="text" class="form-control" id="tagNameInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tagCategorySelect" class="form-label">Категория</label>
+                        <select id="tagCategorySelect" class="form-select">
+                            <option value="">(без категории)</option>
+                            <!-- Используем all_categories для заполнения списка -->
+                            {% for cat in all_categories %}<option value="{{ cat.pk }}">{{ cat.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tagColorInput" class="form-label">Цвет</label>
+                        <input type="color" class="form-control form-control-color" id="tagColorInput" value="#6c757d" title="Выберите цвет">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const tagModalEl = document.getElementById('tagModal');
+    const tagModal = new bootstrap.Modal(tagModalEl);
+    const form = document.getElementById('tagForm');
+    const modalTitle = document.getElementById('tagModalLabel');
+    const tagIdInput = document.getElementById('tagIdInput');
+    const tagNameInput = document.getElementById('tagNameInput');
+    const tagCategorySelect = document.getElementById('tagCategorySelect');
+    const tagColorInput = document.getElementById('tagColorInput');
+
+    // Открытие модального окна для СОЗДАНИЯ
+    document.getElementById('create-tag-btn').addEventListener('click', () => {
+        form.reset();
+        tagIdInput.value = '';
+        modalTitle.textContent = 'Создать новый тег';
+        tagColorInput.value = '#6c757d'; // Сброс цвета
+    });
+
+    // Делегирование событий для кнопок РЕДАКТИРОВАНИЯ и УДАЛЕНИЯ
+    document.getElementById('tag-library-container').addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('.edit-tag-btn');
+        const deleteBtn = e.target.closest('.delete-tag-btn');
+
+        if (editBtn) {
+            e.preventDefault();
+            const tagId = editBtn.dataset.tagId;
+            // 1. Запрашиваем актуальные данные тега с сервера
+            const response = await fetch(`/api/tags/manage/${tagId}/`);
+            const data = await response.json();
+
+            // 2. Заполняем форму
+            modalTitle.textContent = `Редактировать тег: ${data.name}`;
+            tagIdInput.value = data.id;
+            tagNameInput.value = data.name;
+            tagCategorySelect.value = data.category_id || '';
+            tagColorInput.value = data.color;
+
+            // 3. Показываем модальное окно
+            tagModal.show();
+        }
+
+        if (deleteBtn) {
+            e.preventDefault();
+            const tagId = deleteBtn.dataset.tagId;
+            const tagName = deleteBtn.closest('.tag-badge-wrapper').querySelector('.tag-badge-name').textContent;
+
+            if (confirm(`Вы уверены, что хотите удалить тег "${tagName}"? Это действие необратимо.`)) {
+                const response = await fetch(`/api/tags/manage/${tagId}/`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                if (response.ok) {
+                    deleteBtn.closest('.tag-badge-wrapper').remove();
+                } else {
+                    alert('Не удалось удалить тег.');
+                }
+            }
+        }
+    });
+
+    // Обработка отправки формы (создание и редактирование)
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const tagId = tagIdInput.value;
+        const isCreating = !tagId;
+
+        const url = isCreating ? '/api/tags/manage/' : `/api/tags/manage/${tagId}/`;
+        const method = isCreating ? 'POST' : 'PUT';
+
+        const data = {
+            name: tagNameInput.value,
+            category_id: tagCategorySelect.value || null,
+            color: tagColorInput.value
+        };
+
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            tagModal.hide();
+            // Вместо полной перезагрузки, просто перезагружаем страницу для простоты
+            // В более сложном варианте мы бы обновляли DOM динамически
+            location.reload();
+        } else {
+            const errorData = await response.json();
+            alert(`Ошибка: ${errorData.message}`);
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+<div class="tag-badge-wrapper" id="tag-badge-wrapper-{{ tag.pk }}">
+    <div class="tag-controls">
+        <button class="edit-tag-btn" data-tag-id="{{ tag.pk }}" title="Редактировать">✏️</button>
+        <button class="delete-tag-btn" data-tag-id="{{ tag.pk }}" title="Удалить">🗑️</button>
+    </div>
+
+    {# --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Используем правильное имя URL 'files_by_tag' --- #}
+    <a href="{% url 'files_by_tag' tag.slug %}"
+       class="badge tag-badge"
+       style="background-color: {{ tag.color }};">
+        <span class="tag-badge-name">{{ tag.name }}</span>
+
+        {# Определяем video_count внутри, так как он больше не передается снаружи #}
+        {% with video_count=tag.indexedfile_set.count %}
+            {% if video_count > 0 %}
+                <span class="tag-count">{{ video_count }}</span>
+            {% endif %}
+        {% endwith %}
+    </a>
+</div>

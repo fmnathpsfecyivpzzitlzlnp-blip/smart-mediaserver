@@ -1,0 +1,16 @@
+# docker-compose.yml
+services:
+  web:
+    # ...
+    volumes:
+      - .:/code
+      # ...
+      - D:/:/media_root/d_drive
+      # - C:/Users/YourUser/Documents:/media_root/my_documents # <-- Пример для будущей локации
+  worker:
+    # ...
+    volumes:
+      - .:/code
+      # ...
+      - D:/:/media_root/d_drive
+      # - C:/Users/YourUser/Documents:/media_root/my_documents # <-- Пример для будущей локации

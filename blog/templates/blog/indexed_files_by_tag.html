@@ -1,0 +1,16 @@
+{% extends "blog/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<h2>{{ page_title }}</h2>
+<div class="list-group mt-4">
+    {% for item in items %}
+    <a href="{% url 'serve_file' pk=item.pk %}" target="_blank" class="list-group-item list-group-item-action">
+        {{ item.name }}
+        <small class="text-muted d-block">{{ item.relative_path }}</small>
+    </a>
+    {% empty %}
+    <div class="alert alert-info">Нет файлов с таким тегом.</div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+# Secret keys and environment variables
+.env
+
+# Database
+# (Comment out the line below if you want to commit your current tasks and users)
+db.sqlite3
+*.sqlite3-journal
+
+# Media and static files
+media/
+staticfiles/
+temp_zip/
+
+# Mounted folders for movies, shows, and courses
+Ready/
+Movies/
+Source/
+Shows/
+
+# Logs
+logs/
+*.log
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp

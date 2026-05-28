@@ -1,0 +1,156 @@
+{% extends "blog/base.html" %}
+
+{% block title %}{{ file.name }}{% endblock %}
+
+{% block extra_head %}
+<link href="https://vjs.zencdn.net/8.12.0/video-js.css" rel="stylesheet" />
+<style>
+    .player-wrapper {
+        max-width: 1100px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        min-height: 500px; /* Чтобы документы не были сплюснуты */
+        display: flex;     /* Центровка */
+        flex-direction: column;
+    }
+
+    /* Стили для документов (HTML/PDF) внутри темного сайта */
+    .doc-frame {
+        width: 100%;
+        height: 80vh; /* На всю высоту экрана */
+        background: #fff; /* Документы обычно читают на белом */
+        border: none;
+    }
+
+    .lesson-nav {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'learning_root' %}">Обучение</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'course_detail' course.slug %}">{{ course.title }}</a></li>
+        <li class="breadcrumb-item active text-light" aria-current="page">{{ file.name|truncatechars:30 }}</li>
+      </ol>
+    </nav>
+
+    <h3>{{ file.name }}</h3>
+
+    <div class="player-wrapper">
+
+        {{% if file_type == 'video' %}
+            <video
+                id="course-video"
+                class="video-js vjs-big-play-centered vjs-theme-city vjs-fluid"
+                controls
+                preload="auto"
+                crossorigin="anonymous"
+                data-setup='{"playbackRates": [0.5, 1, 1.25, 1.5, 2]}'
+            >
+                <source src="{% url 'serve_course_file' file.id %}" type="video/mp4">
+
+                {% if subtitle_file %}
+                    <track
+                        kind="captions"
+                        src="{% url 'serve_course_file' subtitle_file.id %}"
+                        srclang="ru"
+                        label="Субтитры"
+                        default
+                    >
+                {% endif %}
+                <p class="vjs-no-js">JS должен быть включен.</p>
+            </video>
+
+        {% elif file_type == 'document' %}
+            <iframe src="{% url 'serve_course_file' file.id %}" class="doc-frame"></iframe>
+
+        {% else %}
+            <div class="d-flex justify-content-center align-items-center h-100 text-white p-5 flex-column">
+                <i class="bi bi-file-earmark-binary display-1 mb-3"></i>
+                <h4>Этот файл нельзя просмотреть в браузере</h4>
+                <a href="{% url 'serve_course_file' file.id %}" class="btn btn-primary mt-3">Скачать файл</a>
+            </div>
+        {% endif %}
+
+    </div>
+
+    <div class="lesson-nav">
+        {% if previous_file %}
+            <a href="{% url 'course_file_player' previous_file.id %}" class="btn btn-outline-secondary">
+                ← {{ previous_file.name|truncatechars:20 }}
+            </a>
+        {% else %}
+            <button class="btn btn-outline-secondary" disabled>← Начало</button>
+        {% endif %}
+
+        <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">
+            Список уроков
+        </a>
+
+        {% if next_file %}
+            <a href="{% url 'course_file_player' next_file.id %}" class="btn btn-outline-secondary">
+                {{ next_file.name|truncatechars:20 }} →
+            </a>
+        {% else %}
+            <button class="btn btn-outline-secondary" disabled>Конец →</button>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if file_type == 'video' %}
+<script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const player = videojs('course-video');
+        const csrfToken = '{{ csrf_token }}';
+        const fileId = "{{ file.id }}";
+        let lastUpdateTime = 0;
+
+        player.on('timeupdate', function() {
+            const currentTime = Math.floor(player.currentTime());
+            if (currentTime > lastUpdateTime + 15) {
+                lastUpdateTime = currentTime;
+                fetch(`/api/learning/progress/${fileId}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ timestamp: currentTime })
+                }).catch(err => console.error(err));
+            }
+        });
+        // 🔥 ДОБАВИТЬ ВОТ ЭТОТ БЛОК 🔥
+        player.on('ended', function() {
+            fetch(`/api/learning/progress/${fileId}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ timestamp: Math.floor(player.currentTime()), is_finished: true })
+            }).catch(err => console.error(err));
+        });
+    });
+</script>
+{% elif file_type == 'document' %}
+<script>
+    setTimeout(() => {
+        fetch(`/api/learning/progress/{{ file.id }}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            // 🔥 ДОБАВИЛИ is_finished: true 🔥
+            body: JSON.stringify({ timestamp: 100, is_finished: true })
+        }).then(r => console.log("Документ засчитан"));
+    }, 5000); // Через 5 секунд после открытия
+</script>
+{% endif %}
+{% endblock %}

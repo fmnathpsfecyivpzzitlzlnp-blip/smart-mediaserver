@@ -1,0 +1,223 @@
+{% extends 'blog/base.html' %}
+{% block title %}Do it! - Меню родителя{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper .tab.inactive {
+        background-color: #c8d5fa; /* Делаем неактивные вкладки чуть темнее */
+        opacity: 0.7;
+    }
+    /* Изолируем стили для детского приложения */
+    .kids-app-wrapper {
+        --bg-light-blue: #e8f0fe;
+        --header-blue: #8b9dff;
+        --text-main: #2c3e50;
+        --menu-item-bg: #dce5fa;
+        --yellow-accent: #fcefb4;
+
+        background-color: var(--bg-light-blue);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .kids-app-wrapper .top-tabs {
+        background-color: var(--header-blue);
+        display: flex;
+        padding-top: 40px;
+        padding-left: 20px;
+        gap: 10px;
+    }
+
+    .kids-app-wrapper .tab {
+        background-color: var(--bg-light-blue);
+        padding: 10px 20px;
+        border-radius: 12px 12px 0 0;
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--text-main);
+    }
+
+    .kids-app-wrapper .tab.add-tab {
+        width: 40px;
+        padding: 10px;
+        font-size: 20px;
+        color: var(--header-blue);
+        background-color: var(--menu-item-bg);
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .kids-app-wrapper .menu-list {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        min-height: 500px; /* Чтобы карточка выглядела как экран телефона */
+    }
+
+    .kids-app-wrapper .menu-item {
+        background-color: var(--menu-item-bg);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-main);
+        text-decoration: none;
+        transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .kids-app-wrapper .menu-item:hover {
+        background-color: #cdd8f7;
+        transform: translateY(-2px);
+    }
+
+    .kids-app-wrapper .menu-icon { font-size: 28px; }
+
+    .kids-app-wrapper .child-account-card {
+        background-color: var(--yellow-accent);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .kids-app-wrapper .child-info h3 { font-size: 16px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; color: #333; }
+    .kids-app-wrapper .child-info p { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; margin: 0; color: #555;}
+
+    .kids-app-wrapper .coin {
+        color: #fbbc04; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .kids-app-wrapper .child-avatar { font-size: 45px; line-height: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+
+        <div class="top-tabs" style="flex-wrap: wrap;"> {% for child in children %}
+                <a href="?child_id={{ child.id }}"
+                   class="tab {% if active_child and active_child.id == child.id %}active{% else %}inactive{% endif %}"
+                   style="text-decoration: none;">
+                    {{ child.first_name|default:child.username }}
+                </a>
+            {% empty %}
+                <div class="tab">Нет детей</div>
+            {% endfor %}
+
+            <a href="{% url 'add_child' %}" class="tab add-tab" style="text-decoration: none;" title="Добавить ребенка">+</a>
+        </div>
+
+        <div class="menu-list">
+
+            <a href="{% url 'child_tasks' %}" class="menu-item">
+                <span>Проверить задания</span>
+                <span class="menu-icon">📋</span>
+            </a>
+
+            <a href="{% url 'reward_store' %}" class="menu-item">
+                <span>Магазин и Подарки</span>
+                <span class="menu-icon">🎁</span>
+            </a>
+
+            <a href="{% url 'child_statistics' %}" class="menu-item">
+                <span>Статистика ребёнка</span>
+                <span class="menu-icon">📊</span>
+            </a>
+
+            <a href="{% url 'add_reward' %}" class="menu-item">
+                <span>Добавить награду</span>
+                <span class="menu-icon">➕</span>
+            </a>
+
+            {% if active_child %}
+            <div class="child-account-card">
+                <div class="child-info">
+                    <h3>Аккаунт: {{ active_child.first_name|default:active_child.username }}</h3>
+                    <p>Монеты ребёнка: {{ child_coins }} <span class="coin">★</span></p>
+                </div>
+                <div class="child-avatar" style="display: flex; align-items: center; gap: 15px;">
+                    👦🏻
+                    <div style="font-size: 16px; background: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"
+                         onclick="deleteChild({{ active_child.id }}, '{{ active_child.first_name|default:active_child.username }}')"
+                         title="Удалить аккаунт">🗑️</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="child-account-card" style="opacity: 0.7;">
+                <div class="child-info">
+                    <h3>Нет активного аккаунта</h3>
+                    <p>Выберите ребенка или создайте нового</p>
+                </div>
+                <div class="child-avatar">🤷‍♂️</div>
+            </div>
+            {% endif %}
+            {% if active_child %}
+            <div style="background-color: white; border-radius: 16px; padding: 20px; margin-top: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <h4 style="font-size: 16px; font-weight: 800; margin-bottom: 15px; color: var(--text-main);">🛍️ Журнал заказов</h4>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for p in purchases %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 15px;">{{ p.title }}</div>
+                            <div style="font-size: 12px; color: #8b929a;">{{ p.created_at|date:"d.m.Y в H:i" }}</div>
+                        </div>
+                        <div style="color: #fbbc04; font-weight: 800; font-size: 16px;">
+                            -{{ p.cost }} ★
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="font-size: 14px; color: #8b929a; text-align: center; padding: 10px 0;">
+                        Пока ничего не куплено 🤷‍♂️
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+
+        </div>
+    </div>
+</div>
+<script>
+    async function deleteChild(childId, childName) {
+        // Спрашиваем подтверждение, чтобы не удалить случайно
+        if(confirm(`Вы уверены, что хотите НАВСЕГДА удалить аккаунт "${childName}" и все его монеты?`)) {
+            try {
+                const res = await fetch(`/api/delete-child/${childId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                });
+                const data = await res.json();
+
+                if(data.status === 'ok') {
+                    alert(data.message);
+                    // Вместо простой перезагрузки очищаем ссылку от удаленного ID
+                    window.location.href = window.location.pathname;
+                } else {
+                    alert("Ошибка: " + data.message);
+                }
+            } catch(e) {
+                alert("Сетевая ошибка при удалении");
+            }
+        }
+    }
+</script>
+{% endblock %}

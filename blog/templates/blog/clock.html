@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Центр управления временем</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #1c1c1e; color: #f2f2f7; line-height: 1.5; margin: 0; padding: 20px;}
+        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .card { background: #2c2c2e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .card h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .card form { display: grid; gap: 10px; }
+        .card input, .card select, .card button { padding: 10px; border-radius: 8px; border: 1px solid #555; background: #3a3a3c; color: #fff; font-size: 1em; }
+        .card button { cursor: pointer; background: #0a84ff; font-weight: bold; }
+        .card button:hover { background: #3499ff; }
+        .item-list { padding-left: 0; margin: 0; }
+
+        .item-list li {
+            list-style: none; padding: 10px; border-bottom: 1px solid #444;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        .item-list li > span { flex-grow: 1; }
+        .item-list li .controls { flex-shrink: 0; display: flex; align-items: center; }
+
+        .item-list li button { background-color: #555; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-left: 5px; font-size: 14px; }
+        .item-list li button.delete-btn { background-color: #ff3b30; }
+
+        .stopwatch-display { font-size: 3em; font-weight: bold; text-align: center; font-family: monospace; letter-spacing: 2px; }
+        .stopwatch-controls { display: flex; justify-content: center; gap: 10px; margin-top: 10px;}
+
+        /* СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА УВЕДОМЛЕНИЯ */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); display: none;
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: #3a3a3c; padding: 25px; border-radius: 12px;
+            min-width: 300px; max-width: 90%; text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        .modal-content h3 { margin-top: 0; color: #fff; }
+        .modal-content p { color: #f2f2f7; font-size: 1.1em; }
+        .modal-close-btn { background: #0a84ff; margin-top: 20px; border: none; border-radius: 8px; cursor: pointer; color: white; padding: 8px 15px; font-size: 1em; }
+        .snooze-controls { margin-top: 15px; border-top: 1px solid #555; padding-top: 15px; }
+        .snooze-controls h4 { margin: 0 0 10px 0; color: #aaa; }
+
+        .modal-content .snooze-controls .snooze-btn {
+            background-color: #34c759; /* Яркий зеленый */
+            color: #ffffff;           /* Белый текст */
+            font-weight: 600; border-radius: 8px; border: none;
+            padding: 8px 15px; margin: 5px; cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .modal-content .snooze-controls .snooze-btn:hover { opacity: 0.85; }
+    </style>
+</head>
+<body>
+
+    <audio id="player"></audio>
+
+    <div class="modal-overlay" id="notification-modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Событие</h3>
+            <p id="modal-body">Описание события.</p>
+            <div id="snooze-controls" style="display: none;">
+                <h4>Отложить на:</h4>
+                <button class="snooze-btn" data-minutes="1">1 мин</button>
+                <button class="snooze-btn" data-minutes="3">3 мин</button>
+                <button class="snooze-btn" data-minutes="5">5 мин</button>
+                <button class="snooze-btn" data-minutes="15">15 мин</button>
+                <button class="snooze-btn" data-minutes="30">30 мин</button>
+            </div>
+            <button class="modal-close-btn" id="modal-close">Закрыть</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Будильники</h2>
+            <ul class="item-list" id="alarms-list">
+                {% for alarm in alarms %}
+                    <li id="item-li-{{ alarm.id }}">
+                        <span>
+                            {{ alarm.name }}
+                            {% if alarm.alarm_time %}
+                                ({{ alarm.alarm_time|time:"H:i:s" }})
+                                {% if alarm.days_of_week %}
+                                    <small style="color: #aaa;">(Дни: {{ alarm.days_of_week }})</small>
+                                {% endif %}
+                            {% endif %}
+                            -
+                            <span id="item-status-{{ alarm.id }}">{% if alarm.is_active %}Вкл{% else %}Выкл{% endif %}</span>
+                        </span>
+                        <div class="controls">
+                            <button onclick="toggleItem({{ alarm.id }})">Вкл/Выкл</button>
+                            <button class="delete-btn" onclick="deleteItem({{ alarm.id }})">Удалить</button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card" id="snoozed-alarms-card" style="display: none; border: 2px solid #f5a623;">
+            <h2 style="color: #f5a623;">Отложенные будильники</h2>
+            <ul class="item-list" id="snoozed-alarms-list"></ul>
+        </div>
+
+        <div class="card">
+            <h2>Таймеры</h2>
+            <ul class="item-list" id="timers-list">
+                {% for timer in timers %}
+                    <li id="item-li-{{ timer.id }}" data-duration="{{ timer.timer_duration|default_if_none:'0' }}">
+                        <span>
+                            {{ timer.name }}
+                            (<span id="timer-display-{{timer.id}}">{{ timer.timer_duration|default_if_none:'0' }}</span> сек) -
+                            <span id="item-status-{{ timer.id }}">{% if timer.is_active %}Вкл{% else %}Выкл{% endif %}</span>
+                        </span>
+                        <div class="controls">
+                            <button onclick="startTimer({{ timer.id }}, {{ timer.timer_duration|default_if_none:'0' }}, '{% if timer.sound_file %}{{ timer.sound_file.url }}{% else %}null{% endif %}', '{{ timer.name|escapejs }}')">
+                                Старт
+                            </button>
+                            <button onclick="toggleItem({{ timer.id }})">Вкл/Выкл</button>
+                            <button class="delete-btn" onclick="deleteItem({{ timer.id }})">Удалить</button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Секундомер</h2>
+            <div class="stopwatch-display" id="stopwatch-display">00:00:00.000</div>
+            <div class="stopwatch-controls">
+                <button id="sw-start">Старт</button>
+                <button id="sw-stop">Стоп</button>
+                <button id="sw-reset">Сброс</button>
+            </div>
+            <div style="margin-top: 15px; text-align: center;">
+                Звук при остановке:
+                <select id="sw-sound-select">
+                    <option value="">Без звука</option>
+                    {% for sound in sounds %}
+                        <option value="{{ sound.url }}">{{ sound.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Добавить новый элемент</h2>
+            <form id="add-item-form" action="{% url 'clock' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Добавить</button>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // --- ДАННЫЕ С СЕРВЕРА И ЭЛЕМЕНТЫ DOM ---
+    const alarmsData = JSON.parse('{{ alarms_json|escapejs }}');
+    const audioPlayer = document.getElementById('player');
+    const swDisplay = document.getElementById('stopwatch-display');
+    const swStartBtn = document.getElementById('sw-start');
+    const swStopBtn = document.getElementById('sw-stop');
+    const swResetBtn = document.getElementById('sw-reset');
+    const swSoundSelect = document.getElementById('sw-sound-select');
+
+    const notificationModal = document.getElementById('notification-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalCloseBtn = document.getElementById('modal-close');
+    const snoozeControls = document.getElementById('snooze-controls');
+
+    const snoozedAlarmsCard = document.getElementById('snoozed-alarms-card');
+    const snoozedAlarmsList = document.getElementById('snoozed-alarms-list');
+
+    let currentSnoozeAlarm = null;
+
+    // --- ЛОГИКА БУДИЛЬНИКОВ ---
+    const triggeredAlarms = new Set();
+    setInterval(() => {
+        const now = new Date();
+        const currentDayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
+        const currentTime = now.toTimeString().split(' ')[0];
+        const today = now.toISOString().split('T')[0];
+
+        for (const alarm of [...alarmsData]) {
+            const isTodayTheDay = !alarm.days_of_week || alarm.days_of_week.length === 0 || alarm.days_of_week.includes(currentDayOfWeek);
+
+            if (alarm.is_active && alarm.alarm_time === currentTime && isTodayTheDay) {
+                const triggerId = `${alarm.id}-${today}`;
+                if (!triggeredAlarms.has(triggerId)) {
+                    if (alarm.id.toString().startsWith('snooze-')) {
+                        const originalAlarmName = alarm.original_name || alarm.name;
+                        showNotification('Будильник сработал!', `Пора: ${originalAlarmName}`, alarm);
+                        const index = alarmsData.findIndex(a => a.id === alarm.id);
+                        if (index > -1) alarmsData.splice(index, 1);
+                        renderSnoozedAlarms();
+                    } else {
+                        showNotification('Будильник сработал!', `Пора: ${alarm.name}`, alarm);
+                    }
+                    playSound(alarm.sound_file_url);
+                    triggeredAlarms.add(triggerId);
+                }
+            }
+        }
+        if (currentTime === '00:00:00') triggeredAlarms.clear();
+    }, 1000);
+
+    // --- ЛОГИКА ТАЙМЕРОВ ---
+    const activeTimers = {};
+    function startTimer(id, duration, soundUrl, name) {
+        const statusSpan = document.getElementById(`item-status-${id}`);
+        const isActive = statusSpan ? statusSpan.textContent === 'Вкл' : true;
+        if (!isActive) { console.log(`Таймер "${name}" неактивен.`); return; }
+        if (activeTimers[id]) clearInterval(activeTimers[id]);
+        let remaining = duration;
+        const display = document.getElementById(`timer-display-${id}`);
+        const interval = setInterval(() => {
+            remaining--;
+            if (display) display.textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(interval);
+                if (display) display.textContent = "Готово!";
+                playSound(soundUrl);
+                showNotification('Таймер завершен!', `Таймер "${name}" закончил работу.`);
+                delete activeTimers[id];
+            }
+        }, 1000);
+        activeTimers[id] = interval;
+    }
+
+    // --- ЛОГИКА СЕКУНДОМЕРА ---
+    let swInterval, swStartTime = 0, swElapsedTime = 0;
+    swStartBtn.onclick = () => { if (!swInterval) { swStartTime = Date.now() - swElapsedTime; swInterval = setInterval(updateStopwatch, 10); } };
+    swStopBtn.onclick = () => { if (swInterval) { clearInterval(swInterval); swInterval = null; if (swSoundSelect.value) playSound(swSoundSelect.value); showNotification('Секундомер остановлен', `Время: ${swDisplay.textContent}`); } };
+    swResetBtn.onclick = () => { clearInterval(swInterval); swInterval = null; swElapsedTime = 0; swDisplay.textContent = '00:00:00.000'; };
+    function updateStopwatch() { swElapsedTime = Date.now() - swStartTime; const d = new Date(swElapsedTime); const mins = String(d.getUTCMinutes()).padStart(2, '0'); const secs = String(d.getUTCSeconds()).padStart(2, '0'); const ms = String(d.getUTCMilliseconds()).padStart(3, '0'); swDisplay.textContent = `${mins}:${secs}:${ms}`; }
+
+    // --- УПРАВЛЕНИЕ УВЕДОМЛЕНИЯМИ И ОТКЛАДЫВАНИЕМ ---
+    function showNotification(title, body, alarmDetails = null) { modalTitle.textContent = title; modalBody.textContent = body; currentSnoozeAlarm = alarmDetails; snoozeControls.style.display = alarmDetails ? 'block' : 'none'; notificationModal.style.display = 'flex'; }
+    function closeNotification() { notificationModal.style.display = 'none'; audioPlayer.pause(); audioPlayer.currentTime = 0; currentSnoozeAlarm = null; }
+    function snoozeAlarm(minutes) {
+        if (!currentSnoozeAlarm) return;
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + minutes);
+        const originalName = currentSnoozeAlarm.original_name || currentSnoozeAlarm.name;
+        const snoozeCount = (currentSnoozeAlarm.snooze_count || 0) + 1;
+        const snoozedAlarm = { id: `snooze-${Date.now()}`, name: `(Отложен) ${originalName}`, original_name: originalName, snooze_count: snoozeCount, alarm_time: now.toTimeString().split(' ')[0], is_active: true, sound_file_url: currentSnoozeAlarm.sound_file_url, days_of_week: [] };
+        if (currentSnoozeAlarm.id.toString().startsWith('snooze-')) { const index = alarmsData.findIndex(a => a.id === currentSnoozeAlarm.id); if (index > -1) alarmsData.splice(index, 1); }
+        alarmsData.push(snoozedAlarm);
+        renderSnoozedAlarms();
+        closeNotification();
+    }
+    modalCloseBtn.onclick = closeNotification;
+    document.querySelectorAll('.snooze-btn').forEach(button => { button.onclick = () => { const minutes = parseInt(button.dataset.minutes, 10); snoozeAlarm(minutes); }; });
+
+    // --- Отображение отложенных ---
+    function renderSnoozedAlarms() {
+        snoozedAlarmsList.innerHTML = '';
+        const snoozedAlarms = alarmsData.filter(a => a.id.toString().startsWith('snooze-'));
+        if (snoozedAlarms.length > 0) {
+            snoozedAlarmsCard.style.display = 'block';
+            snoozedAlarms.forEach(alarm => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${alarm.original_name} - сработает в ${alarm.alarm_time} <small style="color: #f5a623;">(${getSnoozeCountText(alarm.snooze_count)})</small></span>`;
+                snoozedAlarmsList.appendChild(li);
+            });
+        } else {
+            snoozedAlarmsCard.style.display = 'none';
+        }
+    }
+    function getSnoozeCountText(count) {
+        if (!count || count === 1) return 'отложен 1 раз';
+        const cases = [2, 0, 1, 1, 1, 2];
+        const titles = ['раз', 'раза', 'раз'];
+        const title = titles[(count % 100 > 4 && count % 100 < 20) ? 2 : cases[(count % 10 < 5) ? count % 10 : 5]];
+        return `отложен ${count} ${title}`;
+    }
+
+    // --- ОБЩИЕ ФУНКЦИИ ---
+    function playSound(url) { if (url) { audioPlayer.src = url; audioPlayer.play().catch(e => console.error("Ошибка воспроизведения аудио:", e)); } }
+    function getCsrfToken() { let token = document.querySelector('input[name="csrfmiddlewaretoken"]'); return token ? token.value : ''; }
+
+    // --- AJAX ФУНКЦИИ ---
+    async function toggleItem(itemId) {
+        try {
+            const response = await fetch(`/clock/item/${itemId}/toggle/`, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' }, });
+            const result = await response.json();
+            if (result.status === 'ok') {
+                const statusSpan = document.getElementById(`item-status-${itemId}`);
+                if (statusSpan) statusSpan.textContent = result.is_active ? 'Вкл' : 'Выкл';
+                const alarm = alarmsData.find(a => a.id === itemId);
+                if (alarm) alarm.is_active = result.is_active;
+                if (activeTimers[itemId] && !result.is_active) {
+                    clearInterval(activeTimers[itemId]); delete activeTimers[itemId];
+                    const timerLi = document.getElementById(`item-li-${itemId}`);
+                    const timerDisplay = document.getElementById(`timer-display-${itemId}`);
+                    if (timerLi && timerDisplay) { timerDisplay.textContent = timerLi.dataset.duration; }
+                }
+            } else { alert(`Ошибка: ${result.message}`); }
+        } catch (error) { console.error('Ошибка при переключении статуса:', error); }
+    }
+    async function deleteItem(itemId) {
+        if (!confirm('Вы уверены, что хотите удалить этот элемент?')) return;
+        try {
+            const response = await fetch(`/clock/item/${itemId}/delete/`, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/json' }, });
+            const result = await response.json();
+            if (result.status === 'ok') {
+                const itemLi = document.getElementById(`item-li-${itemId}`);
+                if (itemLi) itemLi.remove();
+                const index = alarmsData.findIndex(a => a.id === itemId);
+                if (index > -1) alarmsData.splice(index, 1);
+            } else { alert(`Ошибка: ${result.message}`); }
+        } catch (error) { console.error('Ошибка при удалении:', error); }
+    }
+    document.getElementById('add-item-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        try {
+            const response = await fetch(form.action, { method: 'POST', body: formData });
+            const result = await response.json();
+            if (result.status === 'ok') {
+                alert('Элемент добавлен! Страница будет перезагружена.');
+                location.reload();
+            } else {
+                alert('Ошибка:\n' + JSON.stringify(result.errors));
+            }
+        } catch (error) { console.error('Ошибка отправки формы:', error); alert('Произошла сетевая ошибка.'); }
+    };
+
+    // Запускаем отрисовку при загрузке страницы, на случай если она была перезагружена
+    renderSnoozedAlarms();
+</script>
+
+</body>
+</html>

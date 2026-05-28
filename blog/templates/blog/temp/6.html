@@ -1,0 +1,378 @@
+Среди новых скриншотов я увидел, что списки привычек в основном повторяются, но появились совершенно новые экраны — меню создания привычки и, самое главное, главный экран «СЕГОДНЯ» с расписанием и добавленными задачами.
+
+Так как мы уже оцифровали библиотеку привычек, логичным продолжением будет воссоздать интерфейс этого главного экрана (из последнего скриншота), чтобы у вас был полный шаблон приложения.
+
+Вот HTML-код главного экрана «Сегодня» (с календарем, фильтрами, карточками активных привычек и нижним меню навигации):
+
+HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекер привычек - Сегодня</title>
+    <style>
+        :root {
+            --bg-color: #1a1a24;
+            --card-bg: #252532;
+            --blue-accent: #3b82f6;
+            --blue-light: #5a9df8;
+            --text-main: #ffffff;
+            --text-muted: #8b8b9b;
+            --divider: #323242;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 80px; /* Отступ для нижнего меню */
+        }
+
+        /* Шапка */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 20px 10px;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .add-btn {
+            width: 40px;
+            height: 40px;
+            background-color: var(--blue-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 300;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Календарь */
+        .calendar {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--divider);
+        }
+
+        .day-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .day-name {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .day-number {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 50%;
+        }
+
+        .day-col.active .day-number {
+            background-color: var(--card-bg);
+        }
+
+        .day-col.active::after {
+            content: '';
+            width: 20px;
+            height: 4px;
+            background-color: var(--blue-accent);
+            border-radius: 2px;
+            margin-top: 2px;
+        }
+
+        /* Фильтры */
+        .filters {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            scrollbar-width: none; /* Firefox */
+        }
+        .filters::-webkit-scrollbar {
+            display: none; /* Chrome, Safari */
+        }
+
+        .filter-btn {
+            background-color: var(--card-bg);
+            color: var(--text-muted);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .filter-btn.active {
+            background-color: var(--blue-accent);
+            color: white;
+        }
+
+        /* Список привычек */
+        .habits-list {
+            padding: 0 20px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .habit-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .habit-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--text-muted);
+            border-radius: 50%;
+            margin-right: 15px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .habit-card {
+            flex-grow: 1;
+            background-color: var(--blue-light);
+            border-radius: 16px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            color: white;
+        }
+
+        .habit-icon {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .habit-info {
+            flex-grow: 1;
+        }
+
+        .habit-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .habit-subtitle {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .habit-more {
+            font-weight: bold;
+            font-size: 20px;
+            cursor: pointer;
+            padding-left: 10px;
+        }
+
+        /* Кнопка создания */
+        .create-new-btn {
+            margin: 20px;
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            padding: 18px;
+            border-radius: 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        /* Нижнее меню */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px 25px; /* Увеличен нижний паддинг для мобильных */
+            border-top: 1px solid var(--divider);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: var(--text-main);
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <header class="header">
+            <div class="header-title">
+                <h1>Сегодня</h1>
+                <p>26 апр.</p>
+            </div>
+            <div class="add-btn">+</div>
+        </header>
+
+        <div class="calendar">
+            <div class="day-col active">
+                <span class="day-name">ВС</span>
+                <span class="day-number">26</span>
+            </div>
+            <div class="day-col">
+                <span class="day-name">ПН</span>
+                <span class="day-number">27</span>
+            </div>
+            <div class="day-col">
+                <span class="day-name">ВТ</span>
+                <span class="day-number">28</span>
+            </div>
+            <div class="day-col">
+                <span class="day-name">СР</span>
+                <span class="day-number">29</span>
+            </div>
+            <div class="day-col">
+                <span class="day-name">ЧТ</span>
+                <span class="day-number">30</span>
+            </div>
+            <div class="day-col">
+                <span class="day-name">ПТ</span>
+                <span class="day-number">1</span>
+            </div>
+            <div class="day-col">
+                <span class="day-name">СБ</span>
+                <span class="day-number">2</span>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-btn active">ВСЕ</div>
+            <div class="filter-btn">🌅 УТРОМ</div>
+            <div class="filter-btn">☀️ ДНЕМ</div>
+            <div class="filter-btn">🌙 ВЕЧЕРОМ</div>
+        </div>
+
+        <div class="habits-list">
+            <div class="section-label">Неважно</div>
+
+            <div class="habit-row">
+                <div class="habit-checkbox"></div>
+                <div class="habit-card">
+                    <div class="habit-icon">🏃‍♂️</div>
+                    <div class="habit-info">
+                        <div class="habit-title">Упражнения</div>
+                        <div class="habit-subtitle">0 / 5 min</div>
+                    </div>
+                    <div class="habit-more">•••</div>
+                </div>
+            </div>
+
+            <div class="habit-row">
+                <div class="habit-checkbox"></div>
+                <div class="habit-card">
+                    <div class="habit-icon">💪</div>
+                    <div class="habit-info">
+                        <div class="habit-title">отжимание</div>
+                    </div>
+                    <div class="habit-more">•••</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="create-new-btn">
+            создайте новую привычку
+        </div>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active">
+                <span class="nav-icon">📅</span>
+                <span>Сегодня</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">🗺️</span>
+                <span>Ваш путь</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span>История</span>
+            </div>
+            <div class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span>Я</span>
+            </div>
+        </nav>
+
+    </div>
+
+</body>
+</html>

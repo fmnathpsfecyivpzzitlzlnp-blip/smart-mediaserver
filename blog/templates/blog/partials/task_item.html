@@ -1,0 +1,37 @@
+<div class="list-group-item task-item {% if task.is_completed %}task-completed{% endif %}" id="task-item-{{task.pk}}" data-task-id="{{ task.pk }}">
+    <div class="d-flex align-items-center">
+
+        <!-- "Ухват" для перетаскивания -->
+        <span class="drag-handle" style="cursor: grab; touch-action: none; padding-right: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-grip-vertical" viewBox="0 0 16 16" style="color: #adb5bd;">
+                <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+            </svg>
+        </span>
+
+        <!-- Чекбокс для завершения задачи -->
+        <input class="form-check-input flex-shrink-0 m-0 task-toggle-checkbox"
+               type="checkbox"
+               data-task-id="{{ task.pk }}"
+               {% if task.is_completed %}checked{% endif %}
+               style="cursor: pointer;">
+
+        <!-- Основная текстовая часть, открывающая модальное окно -->
+        <div class="w-100 task-content-wrapper" style="cursor: pointer; padding-left: 12px;"
+             data-bs-toggle="modal"
+             data-bs-target="#taskModal"
+             data-task-id="{{ task.pk }}">
+
+            <span class="task-title-span">{{ task.title }}</span>
+            <small class="d-block text-muted">
+                {% if task.due_date %}Срок: {{ task.due_date|date:"D, d M" }} | {% endif %}
+                {% if task.assigned_to %}Исп: <strong>{{ task.assigned_to.username }}</strong>{% endif %}
+                {% if task.is_private %} <span title="Личная задача">🔒</span>{% endif %}
+            </small>
+        </div>
+
+        <!-- Кнопка удаления -->
+        <button class="btn btn-sm btn-outline-danger ms-auto delete-task-btn" data-task-id="{{ task.pk }}" title="Удалить задачу" style="border: none; opacity: 0.2; transition: opacity 0.2s;">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16" style="pointer-events: none;"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92H4.885a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.528ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Zm3.5 0a.5.5 0 0 1 .47.528l-.5 8.5a.5.5 0 0 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47Z"/></svg>
+        </button>
+    </div>
+</div>

@@ -1,0 +1,29 @@
+{% extends 'blog/base.html' %}
+{% block title %}Сериалы{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="text-white mb-4">📺 Сериалы</h2>
+    <div class="row row-cols-2 row-cols-md-5 g-4">
+        {% for show in shows %}
+        <div class="col">
+            <div class="card h-100 bg-dark text-white border-0 shadow-sm hover-scale">
+                {% if show.poster %}
+                    <img src="{{ show.poster.url }}" class="card-img-top rounded" alt="{{ show.title }}" style="aspect-ratio: 2/3; object-fit: cover;">
+                {% else %}
+                    <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="aspect-ratio: 2/3;">
+                        <span class="display-6">{{ show.title|slice:":1" }}</span>
+                    </div>
+                {% endif %}
+                <div class="card-body p-2 text-center">
+                    <h5 class="card-title fs-6 mb-0">{{ show.title }}</h5>
+                    <small class="text-muted">{{ show.episodes.count }} эпизодов</small>
+                   <a href="{% url 'tv_show_detail' show.pk %}" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+            <p class="text-muted">Сериалов пока нет. Запустите сканер!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

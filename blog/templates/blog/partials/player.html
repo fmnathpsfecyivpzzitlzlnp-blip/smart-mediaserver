@@ -1,0 +1,47 @@
+{% comment %}
+    Финальная версия плеера.
+    Надежно проверяет наличие каждого файла перед тем, как пытаться получить его URL.
+{% endcomment %}
+
+{% if movie.web_player_path or movie.movie_path %}
+    <video
+        id="my-video"
+        class="video-js vjs-big-play-centered"
+        controls
+        preload="auto"
+        {% if movie.cover %}poster="{{ movie.cover.url }}"{% endif %}
+        data-video-id="{{ movie.pk }}"
+        style="width: 100%; aspect-ratio: 16/9;"
+    >
+        {# --- Логика выбора источника видео --- #}
+        {% if movie.web_player_path %}
+            <source src="{{ movie.web_player_path.url }}" type="video/mp4">
+        {% elif movie.movie_path %}
+             <source src="{{ movie.movie_path.url }}" type="video/mp4">
+        {% endif %}
+
+        {# --- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ: Надежная проверка файлов превью и субтитров --- #}
+
+        {# Показываем дорожку превью только ЕСЛИ ФАЙЛ СУЩЕСТВУЕТ #}
+        {% if movie.vtt_thumbnails_path %}
+            <track kind="metadata" src="{{ movie.vtt_thumbnails_path.url }}">
+        {% endif %}
+
+        {# Показываем дорожку субтитров только ЕСЛИ ФАЙЛ СУЩЕСТВУЕТ #}
+        {% if movie.subtitles_path %}
+            <track kind="subtitles" srclang="ru" label="Русские" src="{{ movie.subtitles_path.url }}" default>
+        {% endif %}
+
+        <p class="vjs-no-js">
+            Для просмотра этого видео, пожалуйста, включите JavaScript.
+        </p>
+    </video>
+{% else %}
+    {# Если для видео не найдено ни одного файла, показываем сообщение #}
+    <div class="alert alert-warning text-center" role="alert" style="padding: 2rem;">
+        <h4 class="alert-heading">Видеофайл отсутствует</h4>
+        <p>Видео для этого фильма еще обрабатывается или произошла ошибка.</p>
+        <hr>
+        <p class="mb-0">Текущий статус: <strong>{{ movie.get_status_display }}</strong></p>
+    </div>
+{% endif %}

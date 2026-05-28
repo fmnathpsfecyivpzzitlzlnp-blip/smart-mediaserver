@@ -1,0 +1,81 @@
+Шаблон запроса для продолжения разработки
+"Привет! Я продолжаю разработку домашнего медиасервера на Django. Проект уже 'докеризирован' и использует асинхронную обработку видео через Celery и Redis. Вот текущее состояние ключевых файлов и архитектуры.
+Цель на сегодня: [ Здесь напишите, что вы хотите сделать. Например: "Реализовать удаление видеофайлов с диска вместе с записью в БД", "Добавить на главную страницу индикаторы статуса для фильмов, которые обрабатываются", "Добавить систему тегов для фильмов" и т.д. ]
+Текущая архитектура:
+Среда: Проект запускается через docker-compose.
+Сервисы: web (Django+Gunicorn), worker (Celery), redis (брокер сообщений), nginx (веб-сервер и прокси).
+Воркфлоу обработки видео:
+Новые видео кладутся в локальную папку D:\mediaserver\movies_source\.
+Команда docker compose exec worker python manage.py scan_movies запускает сканирование.
+Сканер создает запись в БД со статусом PENDING и ставит задачу в очередь Celery.
+Celery-воркер выполняет задачу: анализирует, конвертирует/перемещает видео в папку media, обновляет статус в БД на READY.
+Nginx раздает готовые видеофайлы из папки media после редиректа от Django.
+Вот ключевые файлы проекта:
+--- START OF PROJECT FILES ---
+========================================
+Файл: docker-compose.yml
+Generated yaml
+# Вставьте сюда содержимое вашего docker-compose.yml
+Use code with caution.
+Yaml
+========================================
+Файл: Dockerfile
+Generated dockerfile
+# Вставьте сюда содержимое вашего Dockerfile
+Use code with caution.
+Dockerfile
+========================================
+Файл: requirements.txt
+Generated code
+# Вставьте сюда содержимое вашего requirements.txt
+Use code with caution.
+========================================
+Файл: nginx.conf
+Generated nginx
+# Вставьте сюда содержимое вашего nginx.conf
+Use code with caution.
+Nginx
+========================================
+Файл: mysite/settings.py
+Generated python
+# Вставьте сюда содержимое вашего mysite/settings.py
+Use code with caution.
+Python
+========================================
+Файл: blog/models.py
+Generated python
+# Вставьте сюда содержимое вашего blog/models.py
+Use code with caution.
+Python
+========================================
+Файл: blog/views.py
+Generated python
+# Вставьте сюда содержимое вашего blog/views.py
+Use code with caution.
+Python
+========================================
+Файл: blog/urls.py
+Generated python
+# Вставьте сюда содержимое вашего blog/urls.py
+Use code with caution.
+Python
+========================================
+Файл: blog/tasks.py
+Generated python
+# Вставьте сюда содержимое вашего blog/tasks.py
+Use code with caution.
+Python
+========================================
+Файл: blog/management/commands/scan_movies.py
+Generated python
+# Вставьте сюда содержимое вашего scan_movies.py
+Use code with caution.
+Python
+========================================
+Файл: blog/templates/blog/movie_detail.html
+Generated html
+# Вставьте сюда содержимое вашего movie_detail.html
+Use code with caution.
+Html
+--- END OF PROJECT FILES ---
+"

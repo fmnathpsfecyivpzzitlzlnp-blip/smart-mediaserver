@@ -1,0 +1,248 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block title %}Медиасервер{% endblock %}
+
+{% block extra_head %}
+    <style>
+        h1, h2 { color: #343a40; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px; }
+        .jarvis-panel { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 30px; }
+        .jarvis-panel .weather-info { display: flex; align-items: center; }
+        .jarvis-panel .weather-info img { margin-right: 15px; }
+        #jarvis-greeting { transition: all 0.5s ease-in-out; }
+
+        .filters-panel { background-color: #fff; padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 30px; border: 1px solid #ddd; }
+
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .movie-item { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.07); overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; }
+        .movie-item:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .movie-item a { text-decoration: none; color: inherit; display: block;position: relative; /* Нужно для позиционирования прогресс-бара */ }
+        .movie-item img { width: 100%; height: 270px; object-fit: cover; display: block; background-color: #e9ecef; }
+        .movie-item .title { padding: 12px; font-weight: 600; font-size: 0.9em; text-align: center; color: #333; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+        .movie-item .status-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 30, 30, 0.7); backdrop-filter: blur(3px); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: 1em; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .movie-item.not-ready:hover .status-overlay { opacity: 1; }
+        .movie-item.not-ready a { cursor: not-allowed; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 4px solid #fff; width: 30px; height: 30px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+            /* Стили для полосы прогресса */
+        .progress-bar-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #ffc107; /* Яркий желтый/оранжевый цвет */
+            transition: width 0.3s ease;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+{% endblock %}
+
+
+{% block content %}
+    <div class="jarvis-panel">
+        {% if user.is_authenticated %}
+            <p class="mb-0" id="jarvis-greeting"><strong>Джарвис:</strong> {{ greeting }}</p>
+        {% else %}
+            <p class="mb-0" id="jarvis-greeting"><strong>Джарвис:</strong> Сканирую...</p>
+        {% endif %}
+
+        {% if weather %}
+            <div class="weather-info mt-2">
+                <img src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png" alt="иконка погоды">
+                <span>Погода в г. {{ weather.city }}: <strong>{{ weather.temp }}°C</strong>, {{ weather.description }}.</span>
+            </div>
+        {% endif %}
+    </div>
+
+    {# Этот CSRF-токен используется нашим JS для входа анонимных пользователей. #}
+    <form method="post" style="display: none;">{% csrf_token %}</form>
+    <!-- ==== НОВЫЙ БЛОК: КАРУСЕЛЬ "ПРОДОЛЖИТЬ ПРОСМОТР" ==== -->
+    {% if continue_watching_list %}
+        <h2 class="mt-5">Продолжить просмотр</h2>
+        <div class="movie-grid">
+            {% for movie in continue_watching_list %}
+                <div class="movie-item">
+                    <a href="{% url 'movie_detail' pk=movie.pk %}">
+                        {% if movie.cover %}
+                        <img src="{{ movie.cover.url }}" alt="{{ movie.title }}">
+                        {% else %}
+                        <img src="{% static 'blog/images/no_cover.png' %}" alt="Нет обложки">
+                        {% endif %}
+
+                        {# Полоса прогресса просмотра #}
+                        {% if movie.progress > 0 %}
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" style="width: {{ movie.progress }}%;"></div>
+                            </div>
+                        {% endif %}
+
+                        <div class="title">{{ movie.title }}</div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <!-- ======================================================= -->
+
+    {# Меняем заголовок для основного списка #}
+    <h2 class="mt-5">Вся фильмотека</h2>
+    <div class="movie-grid">
+        {% for movie in movies %}
+            {# ... (здесь ваш существующий цикл для отображения всех фильмов) ... #}
+        {% endfor %}
+    </div>
+
+    <!-- ==== ВОЗВРАЩАЕМ ФОРМУ ФИЛЬТРА ==== -->
+    <div class="filters-panel">
+        <form method="get" action="">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6 col-lg-3">
+                    <label for="genre" class="form-label">Жанр</label>
+                    <select name="genre" id="genre" class="form-select">
+                        <option value="">Любой</option>
+                        {% for genre in all_genres %}<option value="{{ genre.name }}" {% if genre.name == current_filters.genre %}selected{% endif %}>{{ genre.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label for="country" class="form-label">Страна</label>
+                    <select name="country" id="country" class="form-select">
+                        <option value="">Любая</option>
+                        {% for country in all_countries %}<option value="{{ country.name }}" {% if country.name == current_filters.country %}selected{% endif %}>{{ country.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 col-lg-2">
+                     <label for="year_from" class="form-label">Год (от)</label>
+                     <input type="number" name="year_from" value="{{ current_filters.year_from|default:'' }}" class="form-control" placeholder="1990">
+                </div>
+                <div class="col-md-6 col-lg-2">
+                     <label for="rating_from" class="form-label">Рейтинг (от)</label>
+                     <input type="number" step="0.1" name="rating_from" value="{{ current_filters.rating_from|default:'' }}" class="form-control" placeholder="7.5">
+                </div>
+                <div class="col-lg-2">
+                    <button type="submit" class="btn btn-primary w-100">Найти</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+
+    <!-- ==== ВОЗВРАЩАЕМ СЕТКУ С ФИЛЬМАМИ ==== -->
+    <h2>Фильмотека</h2>
+    <div class="movie-grid">
+        {% for movie in movies %}
+            <div class="movie-item {% if movie.status != 'READY' %}not-ready{% endif %}">
+                <a {% if movie.status == 'READY' %}href="{% url 'movie_detail' pk=movie.pk %}"{% else %}href="#" onclick="return false;"{% endif %}>
+                    {% if movie.cover %}
+                    <img src="{{ movie.cover.url }}" alt="{{ movie.title }}">
+                    {% else %}
+                    <img src="{% static 'blog/images/no_cover.png' %}" alt="Нет обложки">
+                    {% endif %}
+                    <div class="title">{{ movie.title }}</div>
+                </a>
+                {% if movie.status != 'READY' %}
+                <div class="status-overlay">
+                    {% if movie.status == 'PROCESSING' or movie.status == 'PENDING' %}<div class="spinner"></div><span>{{ movie.get_status_display }}</span>{% endif %}
+                    {% if movie.status == 'ERROR' %}<span style="color: #ff453a; font-weight: bold;">Ошибка</span>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="alert alert-info">По вашему запросу фильмов не найдено.</div>
+        {% endfor %}
+    </div>
+
+    <hr style="margin-top: 40px;">
+    <h2>Инструменты</h2>
+    <p><a href="{% url 'organizer' %}">Перейти в Органайзер →</a></p>
+    <p><a href="{% url 'clock' %}">Перейти в Центр управления временем →</a></p>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const isUserAlreadyLoggedIn = {{ request.user.is_authenticated|yesno:"true,false" }};
+    if (isUserAlreadyLoggedIn) {
+        return;
+    }
+
+    const greetingElement = document.getElementById('jarvis-greeting');
+    // Если мы на другой странице, где нет панели Джарвиса, прекращаем работу
+    if (!greetingElement) {
+        return;
+    }
+
+    const video = document.createElement('video');
+    let recognitionInterval = null;
+
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        return tokenInput ? tokenInput.value : null;
+    }
+
+    async function startCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            video.muted = true;
+            video.playsInline = true;
+            await video.play();
+            recognitionInterval = setInterval(captureAndRecognize, 4000);
+        } catch (err) { console.error("Ошибка доступа к камере:", err.name); }
+    }
+
+    function captureAndRecognize() {
+        if (video.paused || !video.videoWidth) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append('image', blob, 'capture.jpg');
+            fetch('http://localhost:9005/recognize', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => { handleRecognitionResult(data.names || []); })
+            .catch(err => { if (recognitionInterval) clearInterval(recognitionInterval); });
+        }, 'image/jpeg');
+    }
+
+    async function handleRecognitionResult(recognizedNames) {
+        const name = recognizedNames.find(n => n !== "Unknown");
+        if (name) {
+            if (recognitionInterval) clearInterval(recognitionInterval);
+            greetingElement.innerHTML = `<strong>Джарвис:</strong> Узнал вас, ${name}. Выполняю вход...`;
+
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                greetingElement.innerHTML = `<strong>Джарвис:</strong> <span class="text-danger">Ошибка безопасности (CSRF).</span>`;
+                return;
+            }
+
+            try {
+                const response = await fetch("{% url 'face_login_api' %}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ username: name })
+                });
+                const data = await response.json();
+                if (response.ok && data.status === 'ok') {
+                    window.location.reload();
+                } else {
+                    greetingElement.innerHTML = `<strong>Джарвис:</strong> <span class="text-danger">Ошибка входа: ${data.message}</span>`;
+                }
+            } catch (error) {
+                greetingElement.innerHTML = `<strong>Джарвис:</strong> <span class="text-danger">Сетевая ошибка при входе.</span>`;
+            }
+        }
+    }
+
+    startCamera();
+});
+</script>
+{% endblock %}

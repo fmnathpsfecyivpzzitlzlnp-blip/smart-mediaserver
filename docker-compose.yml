@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # 1. Redis
+  redis:
+    image: redis:alpine
+    container_name: django_redis
+    restart: always
+#    ports:
+#      - "6379:6379"
+
+  # 2. Web - Основной сайт
+  web:
+    build: .
+    container_name: django_web
+    command: gunicorn mysite.wsgi:application --bind 0.0.0.0:8000
+    restart: always
+    volumes:
+      - .:/code
+      - static_volume:/code/staticfiles
+      # --- ВАШИ ПАПКИ ---
+      - D:\mediaserver\Ready:/code/media
+      - D:\mediaserver\Movies:/source_movies
+      - D:\mediaserver\Source:/source_courses
+      - D:\mediaserver\Shows:/source_shows
+      # 👇 ПОДКЛЮЧАЕМ ДИСКИ (Синтаксис исправлен)
+      - C:\:/drives/c
+      - D:\:/drives/d
+      # Если появится E, раскомментируйте:
+      # - E:\:/drives/e
+    ports:
+      - "8005:8000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  # 3. Worker - Фоновый процесс
+  worker:
+    build: .
+    container_name: django_worker
+    command: celery -A mysite worker -l info
+    restart: always
+    volumes:
+      - .:/code
+      # Worker тоже должен видеть диски, чтобы обрабатывать файлы!
+      - D:\mediaserver\Ready:/code/media
+      - D:\mediaserver\Movies:/source_movies
+      - D:\mediaserver\Source:/source_courses
+      - D:\mediaserver\Shows:/source_shows
+      # 👇 Worker тоже получает доступ к дискам
+      - C:\:/drives/c
+      - D:\:/drives/d
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - web
+
+  # 4. Beat - Планировщик
+  beat:
+    build: .
+    container_name: django_beat
+    command: celery -A mysite beat -l info
+    restart: always
+    volumes:
+      - .:/code
+      - D:\mediaserver\Ready:/code/media
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - web
+
+  # 5. Nginx - Веб-сервер
+  nginx:
+    image: nginx:latest
+    container_name: django_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - static_volume:/code/staticfiles
+      - D:\mediaserver\Ready:/code/media
+      - D:\mediaserver\Movies:/source_movies
+      - D:\mediaserver\Source:/source_courses
+      - D:\mediaserver\Shows:/source_shows
+    depends_on:
+      - web
+
+  # 6. Сервис распознавания лиц
+  face_recognition:
+    build: ./face_recognition_service
+    container_name: django_face_rec
+    restart: always
+    ports:
+      - "9005:5001"
+
+volumes:
+  static_volume:

@@ -1,0 +1,651 @@
+Понял вас! «gjdnjhb cjplfq 'rhfyfs dct» — это «повтори создай экраны все».
+
+Так как вы загрузили сразу всю базу скриншотов, а мы уже оцифровали библиотеку привычек и экран «Сегодня» для темного трекера, я сосредоточусь на новых экранах детского приложения «Do it!», которые мы еще не делали.
+
+Чтобы не перегружать одно сообщение гигантским куском кода, я сверстал для вас 3 главных экрана этого приложения в виде отдельных готовых HTML-файлов. Вы можете сохранить их отдельно.
+
+1. Экран приветствия и входа
+Экран с желтой темой, выбором роли (Родитель/Ребенок) и большой кнопкой входа.
+
+HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do it! - Добро пожаловать</title>
+    <style>
+        :root {
+            --bg-yellow: #fcefb4;
+            --btn-yellow: #fbbc04;
+            --btn-yellow-hover: #f5b000;
+            --text-main: #2c3e50;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-yellow);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .brand-name {
+            font-size: 56px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 30px;
+        }
+
+        /* Переключатель ролей */
+        .role-toggle {
+            display: flex;
+            width: 100%;
+            background-color: var(--white);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 15px 0;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .role-btn.active {
+            background-color: var(--btn-yellow);
+            color: var(--text-main);
+        }
+
+        .role-btn.inactive {
+            background-color: var(--white);
+            color: var(--text-main);
+        }
+
+        .role-title {
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+
+        /* 3D Иллюстрация (Заглушка из эмодзи) */
+        .illustration {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 120px;
+            position: relative;
+            width: 100%;
+        }
+
+        .illustration .parent {
+            margin-right: 20px;
+        }
+
+        .illustration .child {
+            font-size: 70px;
+            position: absolute;
+            bottom: 20%;
+            right: 15%;
+        }
+
+        /* Кнопка Войти */
+        .login-btn {
+            width: 100%;
+            background-color: var(--btn-yellow);
+            color: var(--text-main);
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(251, 188, 4, 0.3);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <h1>Добро пожаловать в</h1>
+        <div class="brand-name">Do it!</div>
+
+        <div class="role-toggle">
+            <div class="role-btn active">Родитель</div>
+            <div class="role-btn inactive">Ребёнок</div>
+        </div>
+
+        <div class="role-title">Родительский аккаунт</div>
+
+        <div class="illustration">
+            <div class="parent">👩‍🏫</div>
+            <div class="child">👦🏽</div>
+        </div>
+
+        <button class="login-btn">Войти</button>
+    </div>
+
+</body>
+</html>
+2. Главное меню родителя
+Светло-синий экран со списком всех возможностей по управлению детским аккаунтом.
+
+HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do it! - Меню родителя</title>
+    <style>
+        :root {
+            --bg-light-blue: #e8f0fe;
+            --header-blue: #8b9dff;
+            --text-main: #2c3e50;
+            --menu-item-bg: #dce5fa;
+            --yellow-accent: #fcefb4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light-blue);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Вкладки сверху */
+        .top-tabs {
+            background-color: var(--header-blue);
+            display: flex;
+            padding-top: 40px;
+            padding-left: 20px;
+            gap: 10px;
+        }
+
+        .tab {
+            background-color: var(--bg-light-blue);
+            padding: 10px 20px;
+            border-radius: 12px 12px 0 0;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-main);
+        }
+
+        .tab.add-tab {
+            width: 40px;
+            padding: 10px;
+            font-size: 20px;
+            color: var(--header-blue);
+            background-color: var(--menu-item-bg);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        /* Список меню */
+        .menu-list {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .menu-item {
+            background-color: var(--menu-item-bg);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .menu-item:active {
+            transform: scale(0.98);
+        }
+
+        .menu-icon {
+            font-size: 28px;
+        }
+
+        /* Специальная карточка детского аккаунта */
+        .child-account-card {
+            background-color: var(--yellow-accent);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .child-info h3 {
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .child-info p {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .coin {
+            color: #fbbc04;
+            font-size: 14px;
+        }
+
+        .child-avatar {
+            font-size: 40px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="top-tabs">
+            <div class="tab">Костя</div>
+            <div class="tab add-tab">+</div>
+        </div>
+
+        <div class="menu-list">
+
+            <div class="menu-item">
+                <span>Проверить задания</span>
+                <span class="menu-icon">📋</span>
+            </div>
+
+            <div class="menu-item">
+                <span>Настроить задания</span>
+                <span class="menu-icon">🛏️</span>
+            </div>
+
+            <div class="menu-item">
+                <span>Настроить подарок</span>
+                <span class="menu-icon">🎁</span>
+            </div>
+
+            <div class="menu-item">
+                <span>Статистика ребёнка</span>
+                <span class="menu-icon">📊</span>
+            </div>
+
+            <div class="menu-item">
+                <span>Подарить подарок</span>
+                <span class="menu-icon">🧺</span>
+            </div>
+
+            <div class="menu-item">
+                <span>Настройки</span>
+                <span class="menu-icon">⚙️</span>
+            </div>
+
+            <div class="menu-item">
+                <span>Друзья Do it!</span>
+                <span class="menu-icon">💡</span>
+            </div>
+
+            <div class="child-account-card">
+                <div class="child-info">
+                    <h3>Детский аккаунт</h3>
+                    <p>Монеты ребёнка: 2 <span class="coin">★</span></p>
+                </div>
+                <div class="child-avatar">👦🏻</div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
+3. Магазин игрушек
+Светло-зеленый экран с сеткой товаров и всплывающим окном «Скоро!».
+
+HTML
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do it! - Магазин игрушек</title>
+    <style>
+        :root {
+            --bg-green-light: #e8f5e9;
+            --header-green: #aed581;
+            --text-main: #2c3e50;
+            --text-muted: #757575;
+            --white: #ffffff;
+            --btn-green: #aed581;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-green-light);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        /* Верхняя панель */
+        .top-profile-bar {
+            background-color: var(--header-green);
+            padding: 40px 20px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .avatar-mini {
+            width: 30px;
+            height: 30px;
+            background-color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .balance {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .coin {
+            color: #fbbc04;
+            font-size: 16px;
+            background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Вкладки магазина */
+        .store-tabs {
+            display: flex;
+            background-color: var(--header-green);
+            padding: 0 10px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px 10px;
+            font-weight: 700;
+            font-size: 15px;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background-color: var(--bg-green-light);
+            color: var(--text-main);
+        }
+
+        .tab.inactive {
+            color: rgba(0,0,0,0.5);
+        }
+
+        /* Сетка товаров */
+        .products-grid {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .product-card {
+            background-color: var(--white);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .product-img {
+            width: 100%;
+            height: 100px;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+        }
+
+        .product-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            height: 30px;
+        }
+
+        .product-price {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .buy-btn {
+            background-color: var(--btn-green);
+            color: var(--white);
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        /* Всплывающее окно (Overlay) */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255,255,255,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .popup {
+            background-color: var(--btn-green);
+            color: var(--text-main);
+            padding: 30px 20px;
+            border-radius: 16px;
+            text-align: center;
+            width: 80%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .popup h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .popup p {
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        /* Нижнее меню */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 500px;
+            background-color: #7cb342;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 20px 25px;
+            border-radius: 20px 20px 0 0;
+            z-index: 20;
+        }
+        .nav-item { font-size: 28px; opacity: 0.6; }
+        .nav-item.active { opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="top-profile-bar">
+            <div class="profile-info">
+                <div class="avatar-mini">👦🏽</div>
+                <span>Костя</span>
+            </div>
+            <div class="balance">
+                2 <div class="coin">★</div>
+            </div>
+        </div>
+
+        <div class="store-tabs">
+            <div class="tab inactive">Подарки от родителей</div>
+            <div class="tab active">Магазин игрушек</div>
+        </div>
+
+        <div class="products-grid">
+
+            <div class="product-card">
+                <div class="product-img">🧲</div>
+                <div class="product-title">Магнитный конструктор</div>
+                <div class="product-price">Цена: 250 <span class="coin" style="width:14px;height:14px;font-size:10px;">★</span></div>
+                <button class="buy-btn">BUY</button>
+            </div>
+
+            <div class="product-card">
+                <div class="product-img">👾</div>
+                <div class="product-title">Фарби робот</div>
+                <div class="product-price">Цена: 100 <span class="coin" style="width:14px;height:14px;font-size:10px;">★</span></div>
+                <button class="buy-btn">BUY</button>
+            </div>
+
+            <div class="product-card">
+                <div class="product-img">🏠</div>
+                <div class="product-title">Деревянный домик</div>
+                <div class="product-price">Цена: 200 <span class="coin" style="width:14px;height:14px;font-size:10px;">★</span></div>
+                <button class="buy-btn">BUY</button>
+            </div>
+
+            <div class="product-card">
+                <div class="product-img">🏎️</div>
+                <div class="product-title">Машина трансформер</div>
+                <div class="product-price">Цена: 300 <span class="coin" style="width:14px;height:14px;font-size:10px;">★</span></div>
+                <button class="buy-btn">BUY</button>
+            </div>
+
+        </div>
+
+        <div class="overlay">
+            <div class="popup">
+                <h2>Скоро!</h2>
+                <p>Магазин с настоящими игрушками от Do it!</p>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <div class="nav-item">🧺</div>
+            <div class="nav-item">📋</div>
+            <div class="nav-item active">👦🏻</div>
+        </nav>
+
+    </div>
+
+</body>
+</html>

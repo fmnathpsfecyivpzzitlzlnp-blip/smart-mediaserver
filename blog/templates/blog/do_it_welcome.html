@@ -1,0 +1,117 @@
+{% extends 'blog/base.html' %}
+{% block title %}Do it! - Добро пожаловать{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper {
+        --bg-yellow: #fcefb4;
+        --btn-yellow: #fbbc04;
+        --btn-yellow-hover: #f5b000;
+        --text-main: #2c3e50;
+        --white: #ffffff;
+        
+        background-color: var(--bg-yellow);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        text-align: center;
+        min-height: 600px;
+    }
+
+    .kids-app-wrapper h1 { font-size: 24px; font-weight: 500; margin-bottom: 5px; color: var(--text-main); }
+    .kids-app-wrapper .brand-name { font-size: 56px; font-weight: 900; letter-spacing: -1px; margin-bottom: 30px; }
+
+    /* Переключатель ролей */
+    .kids-app-wrapper .role-toggle { display: flex; width: 100%; background-color: var(--white); border-radius: 12px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .kids-app-wrapper .role-btn { flex: 1; padding: 15px 0; font-weight: 700; font-size: 14px; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+    .kids-app-wrapper .role-btn.active { background-color: var(--btn-yellow); color: var(--text-main); }
+    .kids-app-wrapper .role-btn.inactive { background-color: var(--white); color: var(--text-main); }
+
+    .kids-app-wrapper .role-title { font-size: 18px; margin-bottom: 40px; font-weight: bold; }
+
+    /* 3D Иллюстрация (Заглушка) */
+    .kids-app-wrapper .illustration { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-size: 120px; position: relative; width: 100%; min-height: 200px; }
+    .kids-app-wrapper .illustration .parent { margin-right: 20px; transition: transform 0.3s;}
+    .kids-app-wrapper .illustration .child { font-size: 70px; position: absolute; bottom: 10%; right: 20%; transition: transform 0.3s;}
+
+    /* Кнопка Войти */
+    .kids-app-wrapper .login-btn { width: 100%; background-color: var(--btn-yellow); color: var(--text-main); border: none; padding: 18px; border-radius: 12px; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; box-shadow: 0 4px 10px rgba(251, 188, 4, 0.4); margin-top: 20px; transition: 0.2s; }
+    .kids-app-wrapper .login-btn:hover { background-color: var(--btn-yellow-hover); transform: translateY(-2px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+        <h1>Добро пожаловать в</h1>
+        <div class="brand-name">Do it!</div>
+
+        <div class="role-toggle">
+            {% if request.user.is_superuser %}
+            <div class="role-btn active" id="btnParent" onclick="selectRole('parent')">Родитель</div>
+            {% endif %}
+            <div class="role-btn {% if not request.user.is_superuser %}active{% else %}inactive{% endif %}" id="btnChild" onclick="selectRole('child')">Участник</div>
+        </div>
+
+        <div class="role-title" id="roleTitle">Родительский аккаунт</div>
+
+        <div class="illustration">
+            <div class="parent" id="iconParent">👩‍🏫</div>
+            <div class="child" id="iconChild">👦🏽</div>
+        </div>
+
+        <button class="login-btn" onclick="login()">Войти</button>
+    </div>
+</div>
+
+<script>
+    let currentRole = 'parent';
+
+    function selectRole(role) {
+        currentRole = role;
+        const btnParent = document.getElementById('btnParent');
+        const btnChild = document.getElementById('btnChild');
+        const roleTitle = document.getElementById('roleTitle');
+        const iconParent = document.getElementById('iconParent');
+        const iconChild = document.getElementById('iconChild');
+
+        if (role === 'parent') {
+            btnParent.className = 'role-btn active';
+            btnChild.className = 'role-btn inactive';
+            roleTitle.innerText = 'Родительский аккаунт';
+            iconParent.style.transform = 'scale(1.1)';
+            iconChild.style.transform = 'scale(0.8)';
+            iconParent.style.opacity = '1';
+            iconChild.style.opacity = '0.5';
+        } else {
+            btnChild.className = 'role-btn active';
+            btnParent.className = 'role-btn inactive';
+            roleTitle.innerText = 'Детский аккаунт';
+            iconParent.style.transform = 'scale(0.8)';
+            iconChild.style.transform = 'scale(1.2)';
+            iconParent.style.opacity = '0.5';
+            iconChild.style.opacity = '1';
+        }
+    }
+
+    function login() {
+        if (currentRole === 'parent') {
+            window.location.href = "{% url 'parent_dashboard' %}";
+        } else {
+            // Теперь ребенок попадает к своим заданиям, а не в магазин
+            window.location.href = "{% url 'child_tasks' %}";
+        }
+    }
+
+    // Инициализация размеров иконок
+    selectRole('parent');
+</script>
+{% endblock %}

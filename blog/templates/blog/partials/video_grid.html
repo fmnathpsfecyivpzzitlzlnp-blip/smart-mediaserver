@@ -1,0 +1,109 @@
+<div class="movie-grid">
+    {% for movie in movies %}
+        <div class="movie-item {% if movie.status != 'READY' %}not-ready{% endif %}">
+            <a {% if movie.status == 'READY' %}href="{% url 'movie_detail' pk=movie.pk %}"{% else %}href="#" onclick="return false;"{% endif %}>
+                {% if movie.cover %}
+                <img src="{{ movie.cover.url }}" alt="{{ movie.title }}">
+                {% else %}
+                <img src="{% static 'blog/images/no_cover.png' %}" alt="Нет обложки">
+                {% endif %}
+                <div class="title">{{ movie.title }}</div>
+            </a>
+            {% if movie.status != 'READY' %}
+            <div class="status-overlay">
+                {% if movie.status == 'PROCESSING' or movie.status == 'PENDING' %}<div class="spinner"></div><span>{{ movie.get_status_display }}</span>{% endif %}
+                {% if movie.status == 'ERROR' %}<span style="color: #ff453a; font-weight: bold;">Ошибка</span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+    {% empty %}
+        <div class="alert alert-info">По вашему запросу видео не найдено.</div>
+    {% endfor %}
+</div>```
+
+**3. Полностью замените содержимое файла `blog/templates/blog/tag_library.html`:**
+```html
+{% extends "blog/base.html" %}
+
+{% block title %}Библиотека тегов{% endblock %}
+
+{% block extra_head %}
+<style>
+.tag-category h4 {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+.tag-badge {
+    text-decoration: none;
+    font-size: 0.9em;
+    padding: 0.5em 0.8em;
+    margin: 4px;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+}
+.tag-badge:hover {
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.tag-count {
+    margin-left: 8px;
+    background-color: rgba(0,0,0,0.2);
+    padding: 0.1em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Библиотека тегов</h1>
+
+{% for category in categories %}
+<div class="tag-category">
+    <h4>{{ category.name }}</h4>
+    <div class="tags-container">
+        {% for tag in category.tags.all %}
+            <a href="{% url 'videos_by_tag' tag.slug %}"
+               class="badge tag-badge"
+               style="background-color: {{ tag.color }};">
+                {{ tag.name }}
+                {% with video_count=tag.video_set.count %}
+                    {% if video_count > 0 %}
+                        <span class="tag-count">{{ video_count }}</span>
+                    {% endif %}
+                {% endwith %}
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+{% if tags_without_category %}
+<div class="tag-category">
+    <h4>Неподшитые теги</h4>
+    <div class="tags-container">
+        {% for tag in tags_without_category %}
+             <a href="{% url 'videos_by_tag' tag.slug %}"
+               class="badge tag-badge"
+               style="background-color: {{ tag.color }};">
+                {{ tag.name }}
+                {% if tag.video_count > 0 %}
+                    <span class="tag-count">{{ tag.video_count }}</span>
+                {% endif %}
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not categories and not tags_without_category %}
+    <div class="alert alert-info">Тегов пока нет.</div>
+{% endif %}
+
+{% endblock %}

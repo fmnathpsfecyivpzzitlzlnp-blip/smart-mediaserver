@@ -1,0 +1,103 @@
+{% extends "blog/base.html" %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h2>Результаты поиска: "{{ query }}"</h2>
+</div>
+
+{% if search_history %}
+<div class="mb-4">
+    <small class="text-muted d-block mb-2">Вы недавно искали:</small>
+    <div class="d-flex flex-wrap gap-2">
+        {% for item in search_history %}
+            <div class="search-tag-badge d-inline-flex align-items-center bg-secondary bg-opacity-25 text-white border border-secondary rounded-pill px-3 py-1">
+                <a href="{% url 'global_search' %}?q={{ item.query }}" class="text-decoration-none text-white me-2">
+                    {{ item.query }}
+                </a>
+
+                <button type="button" onclick="deleteHistoryItem(this, {{ item.id }})" class="btn btn-link p-0 text-white opacity-50 hover-opacity-100 text-decoration-none">
+                    <i class="bi bi-x-circle-fill"></i>
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if results.movies %}
+    <h4 class="mt-4 text-warning">Фильмы</h4>
+    <div class="list-group">
+        {% for m in results.movies %}
+        <a href="{% url 'movie_detail' m.pk %}" class="list-group-item list-group-item-action bg-dark text-white border-secondary">{{ m.title }}</a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if results.courses %}
+    <h4 class="mt-4 text-info">Курсы</h4>
+    <div class="list-group">
+        {% for c in results.courses %}
+        <a href="{% url 'course_detail' c.slug %}" class="list-group-item list-group-item-action bg-dark text-white border-secondary">{{ c.title }}</a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if results.files %}
+    <h4 class="mt-4 text-success">Уроки</h4>
+    <div class="list-group">
+        {% for f in results.files %}
+        <a href="{% url 'course_file_player' f.id %}" class="list-group-item list-group-item-action bg-dark text-white border-secondary">
+            <i class="bi bi-play-circle"></i> {{ f.name }} <small class="text-muted">({{ f.course.title }})</small>
+        </a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if results.tasks %}
+    <h4 class="mt-4 text-primary">Задачи</h4>
+    <div class="list-group">
+        {% for t in results.tasks %}
+        <a href="{% url 'organizer' %}?project_id={{ t.project.id }}" class="list-group-item list-group-item-action bg-dark text-white border-secondary">
+            <i class="bi bi-check2-square"></i> {{ t.title }}
+        </a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if not results.movies and not results.courses and not results.files and not results.tasks %}
+    <p class="mt-3 text-muted">Ничего не найдено.</p>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deleteHistoryItem(btnElement, historyId) {
+    const badge = btnElement.closest('.search-tag-badge');
+    badge.style.opacity = '0.5';
+
+    fetch(`/api/search/delete/${historyId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            badge.remove();
+        } else {
+            console.error(data);
+            alert('Ошибка удаления');
+            badge.style.opacity = '1';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        badge.style.opacity = '1';
+    });
+}
+</script>
+{% endblock %}

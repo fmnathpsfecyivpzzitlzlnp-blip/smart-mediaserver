@@ -1,0 +1,104 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Отчеты по задачам{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Статистика и отчеты</h1>
+    <a href="{% url 'organizer' %}" class="btn btn-outline-secondary">← Вернуться в Органайзер</a>
+</div>
+
+
+<div class="row g-4">
+    <!-- Блок 1: Ключевые показатели -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Сводка за последние 7 дней</h5>
+                <p class="card-text fs-4">Всего выполнено задач: <span class="fw-bold">{{ total_completed_weekly }}</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Блок 2: График по дням недели -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Активность по дням недели</h5>
+                <canvas id="tasksByDayChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Блок 3: Статистика по проектам -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Прогресс по проектам</h5>
+                <ul class="list-group list-group-flush">
+                    {% for project in project_stats %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ project.name }}</strong>
+                            <span>{{ project.completed_tasks }} / {{ project.total_tasks }}</span>
+                        </div>
+                        {% if project.total_tasks > 0 %}
+                        <div class="progress mt-2" style="height: 10px;">
+                            {% widthratio project.completed_tasks project.total_tasks 100 as progress_percentage %}
+                            <div class="progress-bar" role="progressbar" style="width: {{ progress_percentage }}%;" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">Нет проектов для анализа.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+<!-- Подключаем библиотеку для графиков Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('tasksByDayChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                datasets: [{
+                    label: 'Выполнено задач',
+                    // Данные мы получаем из контекста, который передали во view
+                    data: JSON.parse('{{ completed_by_weekday_data|escapejs }}'),
+                    backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                           // Показываем только целые числа на оси Y
+                           stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

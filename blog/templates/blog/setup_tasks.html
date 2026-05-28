@@ -1,0 +1,171 @@
+{% extends 'blog/base.html' %}
+{% block title %}Настроить задания{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper {
+        --bg-light-blue: #e8f0fe;
+        --header-blue: #8b9dff;
+        --text-main: #2c3e50;
+        --text-muted: #5f6368;
+        --card-bg: #ffffff;
+        --btn-purple: #8b9dff;
+        --coin-yellow: #fbbc04;
+        --num-bg: #e8f0fe;
+        
+        background-color: var(--bg-light-blue);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding-bottom: 20px;
+    }
+
+    .kids-app-wrapper .top-tabs { background-color: var(--header-blue); display: flex; padding-top: 40px; padding-left: 20px; gap: 10px; }
+    .kids-app-wrapper .tab { background-color: var(--bg-light-blue); padding: 10px 20px; border-radius: 12px 12px 0 0; font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .kids-app-wrapper .tab.add-tab { width: 40px; padding: 10px; font-size: 20px; color: var(--btn-purple); background-color: #dce5fa; cursor: pointer; text-align: center;}
+
+    .kids-app-wrapper .page-header { display: flex; align-items: center; padding: 20px; font-size: 22px; font-weight: 700; }
+    .kids-app-wrapper .back-btn { margin-right: 15px; font-size: 24px; cursor: pointer; color: var(--text-main); text-decoration: none; }
+
+    .kids-app-wrapper .task-list { padding: 0 15px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+    .kids-app-wrapper .add-custom-task { background-color: var(--card-bg); border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer; color: var(--text-main); text-decoration: none; transition: transform 0.2s; }
+    .kids-app-wrapper .add-custom-task:hover { transform: translateY(-2px); }
+    .kids-app-wrapper .add-icon-btn { width: 36px; height: 36px; background-color: var(--btn-purple); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+
+    .kids-app-wrapper .task-card { background-color: var(--card-bg); border-radius: 16px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+    .kids-app-wrapper .task-info { display: flex; flex-direction: column; gap: 10px; }
+    .kids-app-wrapper .task-title { font-size: 16px; font-weight: 600; }
+    .kids-app-wrapper .reward-section { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); }
+    
+    .kids-app-wrapper .coin { color: var(--coin-yellow); font-size: 14px; background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+    .kids-app-wrapper .reward-numbers { display: flex; gap: 6px; }
+    .kids-app-wrapper .number-btn { width: 26px; height: 26px; border-radius: 50%; background-color: var(--num-bg); color: var(--btn-purple); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .kids-app-wrapper .number-btn.active { background-color: var(--btn-purple); color: white; transform: scale(1.1); box-shadow: 0 2px 5px rgba(139, 157, 255, 0.5); }
+
+    .kids-app-wrapper .task-icon-container { position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 35px; }
+    .kids-app-wrapper .check-badge { position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; background-color: #aed581; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; }
+    .kids-app-wrapper .check-badge::after { content: "✓"; }
+    .kids-app-wrapper .empty-badge { position: absolute; top: 0; right: 0; width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 50%; background-color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+
+        <div class="top-tabs">
+            <div class="tab">{{ child_name }}</div>
+            <div class="tab add-tab" title="Добавить ребенка">+</div>
+        </div>
+
+        <div class="page-header">
+            <a href="{% url 'parent_dashboard' %}" class="back-btn">‹</a>
+            <div>Настроить задания</div>
+        </div>
+
+        <div class="task-list">
+
+            <a href="{% url 'custom_task' %}" class="add-custom-task">
+                <span>Добавить своё задание</span>
+                <div class="add-icon-btn">+</div>
+            </a>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Собрать игрушки</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn active">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🧸<div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Почистить зубы</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn active">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🪥<div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Вынести мусор</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn active">3</div>
+                            <div class="number-btn">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    🗑️<div class="check-badge"></div>
+                </div>
+            </div>
+
+            <div class="task-card">
+                <div class="task-info">
+                    <div class="task-title">Получить хорошую оценку</div>
+                    <div class="reward-section">
+                        <span>Награда:</span>
+                        <div class="coin">★</div>
+                        <div class="reward-numbers">
+                            <div class="number-btn">1</div>
+                            <div class="number-btn">2</div>
+                            <div class="number-btn">3</div>
+                            <div class="number-btn active">4</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="task-icon-container">
+                    📝<div class="empty-badge"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Простой скрипт, чтобы кнопки с монетками красиво переключались
+    document.querySelectorAll('.reward-numbers').forEach(group => {
+        const btns = group.querySelectorAll('.number-btn');
+        btns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                btns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+</script>
+{% endblock %}

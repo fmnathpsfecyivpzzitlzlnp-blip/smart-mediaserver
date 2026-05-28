@@ -1,0 +1,119 @@
+{% extends 'blog/base.html' %}
+{% block title %}Добавить награду{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kids-app-wrapper {
+        --bg-light-blue: #e8f0fe;
+        --header-blue: #8b9dff;
+        --text-main: #2c3e50;
+        --input-bg: #dce5fa;
+        --btn-purple: #8b9dff;
+        --white: #ffffff;
+        
+        background-color: var(--bg-light-blue);
+        color: var(--text-main);
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding-bottom: 30px;
+    }
+
+    .kids-app-wrapper .top-tabs { background-color: var(--header-blue); display: flex; padding-top: 40px; padding-left: 20px; gap: 10px; }
+    .kids-app-wrapper .tab { background-color: var(--bg-light-blue); padding: 10px 20px; border-radius: 12px 12px 0 0; font-weight: 700; font-size: 16px; color: var(--text-main); }
+
+    .kids-app-wrapper .page-header { display: flex; align-items: center; padding: 20px; font-size: 24px; font-weight: 700; }
+    .kids-app-wrapper .back-btn { margin-right: 15px; font-size: 24px; cursor: pointer; text-decoration: none; color: var(--text-main); }
+
+    .kids-app-wrapper .form-container { padding: 0 20px; display: flex; flex-direction: column; }
+    .kids-app-wrapper .form-label { font-size: 16px; margin-bottom: 8px; font-weight: bold; }
+    
+    .kids-app-wrapper .input-box { background-color: var(--input-bg); border-radius: 12px; padding: 15px; margin-bottom: 25px; font-size: 16px; border: none; width: 100%; color: var(--text-main); font-weight: bold;}
+    .kids-app-wrapper .input-box:focus { outline: none; box-shadow: 0 0 0 2px var(--btn-purple); }
+
+    /* Сетка иконок */
+    .kids-app-wrapper .emoji-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 30px; }
+    .kids-app-wrapper .emoji-btn { font-size: 30px; background-color: var(--white); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; border: 3px solid transparent; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .kids-app-wrapper .emoji-btn.active { border-color: var(--btn-purple); transform: scale(1.05); background-color: #f0f4ff; }
+
+    .kids-app-wrapper .save-btn { background-color: var(--btn-purple); color: var(--white); text-align: center; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.2s; border: none; width: 100%; box-shadow: 0 4px 10px rgba(139, 157, 255, 0.4);}
+    .kids-app-wrapper .save-btn:hover { filter: brightness(0.95); transform: translateY(-2px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="kids-app-wrapper">
+
+        <div class="top-tabs">
+            <div class="tab">{{ child_name }}</div>
+        </div>
+
+        <div class="page-header">
+            <a href="{% url 'parent_dashboard' %}" class="back-btn">‹</a>
+            <div>Новая награда</div>
+        </div>
+
+        <div class="form-container">
+
+            <label class="form-label">Что подарим?</label>
+            <input type="text" id="rewardTitle" class="input-box" placeholder="Например: Поход в кино">
+
+            <label class="form-label">Цена (в звездах ★):</label>
+            <input type="number" id="rewardCost" class="input-box" placeholder="50" value="50">
+
+            <label class="form-label">Выберите иконку:</label>
+            <div class="emoji-grid" id="emojiGrid">
+                <div class="emoji-btn active" onclick="selectEmoji(this, '🎁')">🎁</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '🎮')">🎮</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '🍔')">🍔</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '🎬')">🎬</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '🧸')">🧸</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '🚲')">🚲</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '💵')">💵</div>
+                <div class="emoji-btn" onclick="selectEmoji(this, '🎪')">🎪</div>
+            </div>
+
+            <button class="save-btn" onclick="saveReward()">Разместить в магазине</button>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedEmoji = '🎁';
+
+    function selectEmoji(element, emoji) {
+        selectedEmoji = emoji;
+        // Убираем выделение со всех
+        document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('active'));
+        // Добавляем выделение на нажатый
+        element.classList.add('active');
+    }
+
+    async function saveReward() {
+        const title = document.getElementById('rewardTitle').value;
+        const cost = document.getElementById('rewardCost').value;
+
+        if(!title) { alert('Пожалуйста, введите название!'); return; }
+
+        try {
+            const res = await fetch("{% url 'save_reward_api' %}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({title: title, cost: cost, icon: selectedEmoji})
+            });
+            const data = await res.json();
+            
+            if(data.status === 'ok') {
+                window.location.href = "{% url 'reward_store' %}"; // Сразу перекидываем в магазин, чтобы посмотреть результат
+            } else {
+                alert('Ошибка: ' + data.message);
+            }
+        } catch(e) { alert("Сетевая ошибка"); }
+    }
+</script>
+{% endblock %}

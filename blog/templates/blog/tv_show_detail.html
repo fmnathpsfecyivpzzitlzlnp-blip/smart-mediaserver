@@ -1,0 +1,46 @@
+{% extends 'blog/base.html' %}
+{% block title %}{{ show.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tv_show_list' %}" class="text-decoration-none text-muted">Сериалы</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ show.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-5">
+        <div class="col-md-3">
+            {% if show.poster %}
+                <img src="{{ show.poster.url }}" class="img-fluid rounded shadow" alt="{{ show.title }}">
+            {% else %}
+                <div class="bg-secondary rounded d-flex align-items-center justify-content-center text-white" style="aspect-ratio: 2/3;">
+                    <span class="display-1">{{ show.title|slice:":1" }}</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-9 text-white">
+            <h1 class="display-4">{{ show.title }}</h1>
+            <p class="lead text-muted">{{ show.description|default:"Описания пока нет" }}</p>
+        </div>
+    </div>
+
+    {% for season_num, episodes in seasons %}
+    <div class="mb-4">
+        <h3 class="text-warning border-bottom border-secondary pb-2 mb-3">Сезон {{ season_num }}</h3>
+        <div class="list-group">
+            {% for ep in episodes %}
+            <a href="{% url 'movie_detail' ep.pk %}" class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="fw-bold me-3 text-muted">{{ ep.episode_number|stringformat:"02d" }}.</span>
+                    {{ ep.title }}
+                </div>
+                <span class="badge bg-secondary">{{ ep.get_duration_formatted }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

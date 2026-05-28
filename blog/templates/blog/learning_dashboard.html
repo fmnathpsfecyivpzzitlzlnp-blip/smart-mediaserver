@@ -1,0 +1,133 @@
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block title %}Карта Знаний{% endblock %}
+
+{% block extra_head %}
+<style>
+/* --- СТИЛИ ДЛЯ КАТЕГОРИЙ (СТИКЕРЫ) --- */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 40px;
+    padding: 20px 0;
+}
+
+/* Сам стикер */
+.sticker-folder {
+    position: relative;
+    background-color: #fcf065; /* Классический желтый стикер */
+    padding: 20px;
+    height: 220px; /* Фиксированная высота */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    text-decoration: none !important; /* Важно, чтобы убрать подчеркивание у ссылок */
+    color: #495057; /* Темно-серый, как карандаш */
+
+    /* Эффект бумаги */
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    /* Уголок */
+    background: linear-gradient(135deg, #fcf065 85%, #dbcf56 100%);
+}
+
+/* Рандомизация поворота для небрежного вида */
+.categories-grid a:nth-child(4n+1) .sticker-folder { transform: rotate(2deg); }
+.categories-grid a:nth-child(4n+2) .sticker-folder { transform: rotate(-3deg); }
+.categories-grid a:nth-child(4n+3) .sticker-folder { transform: rotate(1deg); }
+.categories-grid a:nth-child(4n+4) .sticker-folder { transform: rotate(-1.5deg); }
+
+/* Эффект при наведении */
+.sticker-folder:hover {
+    transform: scale(1.1) rotate(0deg) !important; /* Увеличиваем и выравниваем */
+    box-shadow: 10px 10px 25px rgba(0,0,0,0.25);
+    z-index: 10;
+}
+
+/* "Кнопка" или "Гвоздик" сверху стикера */
+.sticker-folder::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #e74c3c; /* Красный цвет кнопки */
+    box-shadow: 1px 2px 5px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.5);
+}
+
+/* Текст на стикере */
+.sticker-title {
+    font-family: 'Amatic SC', cursive;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1;
+}
+
+.sticker-description {
+    font-family: 'Gochi Hand', cursive;
+    font-size: 1rem;
+    margin-top: 8px;
+}
+
+.sticker-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+.sticker-count {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+/* Разные цвета стикеров */
+.sticker-blue { background: #a3c2e0; background: linear-gradient(135deg, #a3c2e0 85%, #8aa6c2 100%); }
+.sticker-green { background: #b6e0a3; background: linear-gradient(135deg, #b6e0a3 85%, #9ac28a 100%); }
+.sticker-pink { background: #e0a3c2; background: linear-gradient(135deg, #e0a3c2 85%, #c28aa6 100%); }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<h2 style="text-align: center; font-family: 'Amatic SC', cursive; font-size: 3.5rem; margin-bottom: 30px;">
+    Карта Знаний
+</h2>
+
+<div class="categories-grid">
+    {% for category in categories %}
+    <a href="{% url 'learning_category_root' category.slug %}">
+        <div class="sticker-folder {{ category.css_class }}">
+            {% if category.svg_icon_path %}
+                <img src="{% static category.svg_icon_path %}" class="sticker-icon" alt="{{ category.name }}">
+            {% endif %}
+            <div class="sticker-title">{{ category.name }}</div>
+            <div class="sticker-count">{{ category.item_count }}</div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="alert alert-info w-100" style="grid-column: 1 / -1;">
+        Категорий пока нет. Проиндексируйте файлы командой `scan_locations`, чтобы они появились.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

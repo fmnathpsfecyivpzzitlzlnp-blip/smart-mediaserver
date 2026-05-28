@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Своё задание</title>
+    <style>
+        :root {
+            --bg-light-blue: #e8f0fe;
+            --header-blue: #8b9dff;
+            --text-main: #2c3e50;
+            --text-muted: #5f6368;
+            --input-bg: #dce5fa;
+            --btn-purple: #8b9dff;
+            --check-green: #aed581;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light-blue);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 30px;
+        }
+
+        /* Верхняя панель вкладок */
+        .top-tabs {
+            background-color: var(--header-blue);
+            display: flex;
+            padding-top: 40px;
+            padding-left: 20px;
+            gap: 10px;
+        }
+
+        .tab {
+            background-color: var(--bg-light-blue);
+            padding: 10px 20px;
+            border-radius: 12px 12px 0 0;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab.add-tab {
+            width: 40px;
+            padding: 10px;
+            font-size: 20px;
+            color: var(--btn-purple);
+            background-color: var(--input-bg);
+            cursor: pointer;
+        }
+
+        /* Заголовок страницы */
+        .page-header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .back-btn {
+            margin-right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .header-title-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .premium-badge {
+            position: absolute;
+            top: -5px;
+            right: -65px;
+            background: linear-gradient(135deg, #a7b7ff, #8b9dff);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            transform: rotate(-5deg);
+            text-transform: uppercase;
+            font-weight: 800;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Форма */
+        .form-container {
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .input-box {
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .input-box.dropdown {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .dropdown .chevron {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .verification-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .verification-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .verification-value {
+            font-size: 16px;
+            color: var(--text-main);
+        }
+
+        /* Радио-кнопки */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .radio-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--btn-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: transparent;
+        }
+
+        .radio-icon.checked {
+            background-color: var(--check-green);
+            border-color: var(--check-green);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Счетчик монет */
+        .counter-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .counter-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--white);
+            color: var(--btn-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 300;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+
+        .counter-value {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--input-bg);
+            color: var(--btn-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        /* Блок загрузки картинки */
+        .image-upload-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            margin-top: 10px;
+        }
+
+        .image-placeholder-box {
+            width: 150px;
+            height: 100px;
+            background-color: var(--white);
+            border-radius: 16px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+        }
+
+        .add-image-btn {
+            position: absolute;
+            bottom: -15px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background-color: var(--btn-purple);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 2px 6px rgba(139, 157, 255, 0.4);
+            cursor: pointer;
+        }
+
+        .image-upload-text {
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        /* Кнопка Премиум */
+        .premium-btn {
+            background-color: var(--input-bg);
+            color: #7b8de6;
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="top-tabs">
+            <div class="tab">Костя</div>
+            <div class="tab add-tab">+</div>
+        </div>
+
+        <div class="page-header">
+            <div class="back-btn">‹</div>
+            <div class="header-title-container">
+                Своё задание
+                <span class="premium-badge">Премиум</span>
+            </div>
+        </div>
+
+        <div class="form-container">
+
+            <label class="form-label">Название задания:</label>
+            <div class="input-box">Пример: Полить цветы</div>
+
+            <label class="form-label">Описание:</label>
+            <div class="input-box" style="height: 80px;">Пример: Полей все цветы, кроме кактуса!</div>
+
+            <label class="form-label">Регулярность:</label>
+            <div class="radio-group">
+                <div class="radio-item">
+                    <div class="radio-icon checked">✓</div>
+                    <span>Регулярное задание</span>
+                </div>
+                <div class="radio-item">
+                    <div class="radio-icon"></div>
+                    <span>Единоразовая задача</span>
+                </div>
+            </div>
+
+            <label class="form-label">Дни выполнения задания:</label>
+            <div class="input-box dropdown">
+                <span>Выберите дни</span>
+                <span class="chevron">⌄</span>
+            </div>
+
+            <label class="form-label">Награда в монетах:</label>
+            <div class="counter-container">
+                <div class="counter-btn">−</div>
+                <div class="counter-value">1</div>
+                <div class="counter-btn">+</div>
+            </div>
+
+            <label class="form-label">Способ проверки задания:</label>
+            <div class="input-box dropdown">
+                <div class="verification-layout">
+                    <span class="verification-label">Выберите способ</span>
+                    <span class="verification-value">Фото</span>
+                </div>
+                <span class="chevron">⌄</span>
+            </div>
+
+            <div class="image-upload-wrapper">
+                <div class="image-placeholder-box">
+                    🛏️🧸
+                    <div class="add-image-btn">+</div>
+                </div>
+                <div class="image-upload-text">Добавьте картинку задания</div>
+            </div>
+
+            <div class="premium-btn">Перейти на премиум</div>
+
+        </div>
+    </div>
+
+</body>
+</html>
