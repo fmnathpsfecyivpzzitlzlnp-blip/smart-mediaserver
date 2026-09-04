@@ -1,0 +1,5 @@
+# Включение платформы виртуальных машин
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+
+# Включение подсистемы Windows для Linux
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart

@@ -31,9 +31,12 @@ import json
 import mimetypes
 from django.http import FileResponse, Http404
 from urllib.parse import quote
-from .models import Video, Course, ProcessingLog, TVShow, RewardItem, Purchase, EventType, TrackerEvent, ChildTask, PurchaseLog
+from .models import Video, Course, ProcessingLog, TVShow, RewardItem, Purchase, EventType, TrackerEvent, ChildTask, \
+    PurchaseLog, PlannedEvent, FamilyBoss
 from django.db.models import Count
-
+import mimetypes
+from django.http import HttpResponse, FileResponse, Http404
+from .streaming import HLSManager
 
 # Импорты моделей из вашего файла blog/models.py
 from .models import (
@@ -1773,7 +1776,7 @@ def dashboard_view(request):
     user = request.user
     today = timezone.localdate()
 
-    # 1. СЧИТАЕМ СЕРИЮ (STREAK) - Оставляем как было, это работает
+    # 1. СЧИТАЕМ СЕРИЮ (STREAK)
     completed_dates = Task.objects.filter(
         Q(assigned_to=user) | Q(created_by=user),
         is_completed=True,
@@ -1791,7 +1794,7 @@ def dashboard_view(request):
         current_streak += 1
         check_date -= timedelta(days=1)
 
-    # 👇 Данные профиля и статистика для JARVIS
+    # Данные профиля и статистика для JARVIS
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
     # Считаем задачи, выполненные СЕГОДНЯ (для отчета)
@@ -1801,7 +1804,7 @@ def dashboard_view(request):
         completed_at__date=today
     ).count()
 
-    # 2. ТЕПЛОВАЯ КАРТА - Оставляем как было
+    # 2. ТЕПЛОВАЯ КАРТА
     year_ago = today - timedelta(days=365)
     activity_qs = Task.objects.filter(
         Q(assigned_to=user) | Q(created_by=user),
@@ -1811,28 +1814,22 @@ def dashboard_view(request):
 
     activity_map = {item['date'].strftime('%Y-%m-%d'): item['count'] for item in activity_qs}
 
-    # 3. 🔥 РАСЧЕТ ПРОГРЕССА (ПО ВИДЕО) 🔥
-    # Берем курсы, по которым у пользователя создан План Обучения
+    # 3. РАСЧЕТ ПРОГРЕССА (ПО ВИДЕО)
     study_plans = StudyPlan.objects.filter(user=user).select_related('course')
     courses_progress = []
 
     for plan in study_plans:
         course = plan.course
 
-        # А. Считаем общее кол-во уроков в курсе
         total_lessons = course.lessons.count()
-
-        # Б. Считаем, сколько видео из этого курса пользователь ДОСМОТРЕЛ (is_finished=True)
         watched_count = WatchHistory.objects.filter(
             user=user,
             video__course=course,
             is_finished=True
         ).count()
 
-        # В. Считаем процент
         percent = int((watched_count / total_lessons * 100)) if total_lessons > 0 else 0
 
-        # Г. Ищем СЛЕДУЮЩИЙ урок (первый, который еще не досмотрен)
         watched_ids = WatchHistory.objects.filter(
             user=user,
             video__course=course,
@@ -1853,14 +1850,13 @@ def dashboard_view(request):
             'next_lesson_id': next_lesson.id if next_lesson else None
         })
 
-    # Получаем последние 4 видео, которые ты начал смотреть, но не закончил
+    # Получаем последние 4 видео (Продолжить просмотр)
     continue_watching = WatchHistory.objects.filter(
         user=user,
         is_finished=False,
         timestamp__gt=0
     ).select_related('video', 'video__course').order_by('-updated_at')[:4]
 
-    # Добавляем расчет процента прогресса для каждого видео
     recent_items = []
     for item in continue_watching:
         video = item.video
@@ -1872,10 +1868,9 @@ def dashboard_view(request):
                 'progress': progress_percent
             })
 
-    # --- 4. ДАННЫЕ ДЛЯ ТРЕКЕРА ЗДОРОВЬЯ/ПРИВЫЧЕК ---
+    # 4. ДАННЫЕ ДЛЯ ТРЕКЕРА ЗДОРОВЬЯ/ПРИВЫЧЕК
     tracker_events = TrackerEvent.objects.filter(user=user, timestamp__gte=year_ago).select_related('event_type')
 
-    # Сгруппируем данные для графиков (Chart.js)
     tracker_data = {}
     for event in tracker_events:
         cat_name = event.event_type.name
@@ -1890,7 +1885,6 @@ def dashboard_view(request):
 
         tracker_data[cat_name]['data'][date_str] += event.value
 
-    # Считаем итоги за текущий месяц (для прогресс-баров)
     first_day_of_month = today.replace(day=1)
     monthly_stats = TrackerEvent.objects.filter(
         user=user, timestamp__gte=first_day_of_month
@@ -1899,7 +1893,43 @@ def dashboard_view(request):
         count=Count('id')
     ).order_by('-total_value')
 
-    # 👇 ГЛАВНОЕ ИСПРАВЛЕНИЕ: ДОБАВЛЕНЫ GREETING И WEATHER 👇
+    # 5. ИЩЕМ БЛИЖАЙШИЕ СОБЫТИЯ (ДЛЯ АГЕНДЫ И ГЛАВНОЙ КАРТОЧКИ)
+    time_threshold = timezone.now() - timedelta(hours=1)
+    upcoming_events_qs = PlannedEvent.objects.filter(
+        user=request.user,
+        event_date__gte=time_threshold
+    ).order_by('event_date')
+
+    # ГЛАВНЫЕ КАРТОЧКИ (Hero Events) - Не отзвеневшие. Сортируем: сначала ВАЖНЫЕ, потом по дате. Берем ТОП-3.
+    hero_events_raw = upcoming_events_qs.filter(is_notified=False)
+    hero_events = sorted(hero_events_raw, key=lambda x: (not x.is_important, x.event_date))[:3]
+
+    # АГЕНДА НА 7 ДНЕЙ
+    agenda = []
+    for i in range(7):
+        current_day = today + timedelta(days=i)
+        start_of_day = timezone.make_aware(datetime.combine(current_day, datetime.min.time()))
+        end_of_day = timezone.make_aware(datetime.combine(current_day, datetime.max.time()))
+
+        day_events = upcoming_events_qs.filter(event_date__range=(start_of_day, end_of_day))
+        agenda.append({
+            'date': current_day,
+            'is_today': i == 0,
+            'is_tomorrow': i == 1,
+            'events': day_events
+        })
+
+    # Собираем данные в JSON для JavaScript-будильника
+    events_json_data = []
+    for ev in upcoming_events_qs:
+        if not ev.is_notified and ev.event_date > timezone.now():
+            events_json_data.append({
+                'id': ev.id,
+                'title': ev.title,
+                'date_iso': ev.event_date.isoformat(),
+                'sound_url': ev.sound_file.url if ev.sound_file else 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg'
+            })
+
     context = {
         'profile': profile,
         'current_streak': current_streak,
@@ -1912,6 +1942,9 @@ def dashboard_view(request):
         'monthly_stats': monthly_stats,
         'greeting': get_greeting(),
         'weather': get_weather(),
+        'hero_events': hero_events,
+        'agenda': agenda,
+        'events_json': json.dumps(events_json_data),
     }
 
     return render(request, 'blog/dashboard.html', context)
@@ -2759,15 +2792,19 @@ def do_it_welcome_view(request):
 
 @login_required
 def child_tasks_view(request):
-    """Экран выполнения заданий для ребенка (Обновленный)"""
+    """Экран выполнения заданий для ребенка (Танковый Бой)"""
     profile = request.user.profile
+    # Достаем невыполненные задания
     active_tasks = ChildTask.objects.filter(user=request.user, is_completed=False).order_by('-created_at')
 
+    # 👇 Ищем активного босса (танка), которого еще не подбили
+    active_boss = FamilyBoss.objects.filter(is_defeated=False).first()
+
     return render(request, 'blog/child_tasks.html', {
-        # 👇 Берем красивое имя, а если его нет - логин 👇
         'child_name': request.user.first_name or request.user.username,
         'child_coins': profile.coins,
-        'tasks': active_tasks
+        'tasks': active_tasks,
+        'boss': active_boss  # <--- Передаем босса на фронтенд
     })
 
 
@@ -2805,29 +2842,58 @@ def child_tasks_view(request):
 @require_POST
 @login_required
 def toggle_child_task_api(request, task_id):
-    """API для выполнения детского задания и начисления монет"""
+    """API для нанесения урона боссу и начисления монет"""
     try:
         task = get_object_or_404(ChildTask, id=task_id, user=request.user)
         profile = request.user.profile
-
         data = json.loads(request.body)
         is_checked = data.get('completed', False)
 
+        boss = FamilyBoss.objects.filter(is_defeated=False).first()
+        damage_dealt = 0
+        boss_defeated = False
+
         if is_checked and not task.is_completed:
-            # Выполнили: начисляем монеты
+            # Снаряд попал в цель: начисляем базовые монеты
             task.is_completed = True
             profile.coins += task.reward
+
+            # Наносим урон боссу
+            if boss:
+                boss.current_hp -= task.damage
+                damage_dealt = task.damage
+
+                # Проверяем, уничтожен ли босс
+                if boss.current_hp <= 0:
+                    boss.current_hp = 0
+                    boss.is_defeated = True
+                    boss_defeated = True
+                    # Выдаем супер-награду за уничтожение танка!
+                    profile.coins += boss.reward_coins
+
+                boss.save()
+
         elif not is_checked and task.is_completed:
-            # Отменили галочку: списываем монеты обратно
+            # Если случайно отменили галочку
             task.is_completed = False
             profile.coins -= task.reward
+            if boss:
+                boss.current_hp += task.damage
+                if boss.current_hp > boss.max_hp:
+                    boss.current_hp = boss.max_hp
+                boss.save()
 
-        # Сохраняем изменения в базу
         task.save()
         profile.save()
 
-        # Возвращаем новый баланс, чтобы обновить циферку на экране
-        return JsonResponse({'status': 'ok', 'new_balance': profile.coins})
+        return JsonResponse({
+            'status': 'ok',
+            'new_balance': profile.coins,
+            'boss_hp': boss.current_hp if boss else 0,
+            'boss_max_hp': boss.max_hp if boss else 0,
+            'damage_dealt': damage_dealt,
+            'boss_defeated': boss_defeated
+        })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -3057,3 +3123,276 @@ def buy_reward_api(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@require_POST
+@login_required
+def mark_event_notified_api(request, event_id):
+    """
+    API для подтверждения, что будильник события прозвенел и пользователь это увидел.
+    Защищает от повторных срабатываний при обновлении страницы.
+    """
+    from .models import PlannedEvent # Импортируем локально, чтобы избежать циклических импортов
+    try:
+        event = get_object_or_404(PlannedEvent, pk=event_id, user=request.user)
+        event.is_notified = True
+        event.save(update_fields=['is_notified'])
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@require_POST
+@login_required
+def create_event_api(request):
+    """API для создания планового события (теперь с поддержкой is_important)."""
+    from .models import PlannedEvent
+
+    title = request.POST.get('title', '').strip()
+    description = request.POST.get('description', '').strip()
+    event_date_str = request.POST.get('event_date', '').strip()
+
+    # 👇 Читаем галочку: если она нажата, браузер пришлет 'on'
+    is_important = request.POST.get('is_important') == 'on'
+
+    sound_file = request.FILES.get('sound_file')
+    cover = request.FILES.get('cover')
+
+    if not title or not event_date_str:
+        return JsonResponse({'status': 'error', 'message': 'Название и дата обязательны.'}, status=400)
+
+    try:
+        # Умный парсинг даты: пробуем стандартный формат, если браузер прислал с секундами - перехватываем
+        try:
+            dt = datetime.strptime(event_date_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            dt = datetime.strptime(event_date_str, '%Y-%m-%dT%H:%M:%S')
+
+        event_date = timezone.make_aware(dt)
+
+        if event_date <= timezone.now():
+            return JsonResponse({'status': 'error', 'message': 'Нельзя создать событие в прошлом!'}, status=400)
+
+        PlannedEvent.objects.create(
+            user=request.user,
+            title=title,
+            description=description,
+            event_date=event_date,
+            is_important=is_important,  # <--- Сохраняем флаг в базу!
+            sound_file=sound_file,
+            cover=cover
+        )
+        return JsonResponse({'status': 'ok', 'message': 'Событие успешно запланировано!'})
+
+    except Exception as e:
+        # Если сервер падает, возвращаем реальную ошибку, а не молчим
+        return JsonResponse({'status': 'error', 'message': f'Ошибка сервера: {str(e)}'}, status=500)
+
+@require_POST
+@login_required
+def delete_planned_event_api(request, event_id):
+    """API для жесткого удаления планового события."""
+    from .models import PlannedEvent
+    try:
+        # get_object_or_404 с проверкой user гарантирует, что чужое событие удалить нельзя
+        event = get_object_or_404(PlannedEvent, pk=event_id, user=request.user)
+        event.delete()
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@require_POST
+@login_required
+def edit_planned_event_api(request, event_id):
+    """API для редактирования (с поддержкой is_important и защитой от дурака)."""
+    from .models import PlannedEvent
+    try:
+        event = get_object_or_404(PlannedEvent, pk=event_id, user=request.user)
+
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        event_date_str = request.POST.get('event_date', '').strip()
+
+        # Обновляем флаг важности
+        event.is_important = request.POST.get('is_important') == 'on'
+
+        if title: event.title = title
+        if description: event.description = description
+
+        if event_date_str:
+            try:
+                dt = datetime.strptime(event_date_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                dt = datetime.strptime(event_date_str, '%Y-%m-%dT%H:%M:%S')
+
+            event.event_date = timezone.make_aware(dt)
+            if event.event_date > timezone.now():
+                event.is_notified = False
+
+        sound_file = request.FILES.get('sound_file')
+        cover_file = request.FILES.get('cover')
+
+        if cover_file:
+            if not cover_file.content_type.startswith('image/'):
+                return JsonResponse({'status': 'error', 'message': 'Обложка должна быть картинкой!'}, status=400)
+            event.cover = cover_file
+
+        if sound_file:
+            if not sound_file.content_type.startswith('audio/') and not sound_file.content_type.startswith('video/'):
+                return JsonResponse({'status': 'error', 'message': 'В поле мелодии нужен аудиофайл!'}, status=400)
+            event.sound_file = sound_file
+
+        event.save()
+        return JsonResponse({'status': 'ok', 'message': 'Событие обновлено!'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Внутренняя ошибка: {str(e)}'}, status=500)
+
+
+@login_required
+def omni_search_api(request):
+    """
+    Глобальный асинхронный поиск по всем сущностям системы (Omni-Search).
+    """
+    query = request.GET.get('q', '').strip()
+    if not query or len(query) < 2:
+        return JsonResponse({'results': []})
+
+    results = []
+
+    # 1. Поиск по ЗАДАЧАМ (Только свои или где назначен)
+    tasks = Task.objects.filter(
+        Q(title__icontains=query) | Q(description__icontains=query),
+        Q(created_by=request.user) | Q(assigned_to=request.user)
+    ).order_by('-created_at')[:3]
+
+    for t in tasks:
+        results.append({
+            'type': 'task',
+            'title': t.title,
+            'subtitle': 'Задача',
+            'url': f"/organizer/?project_id={t.project.id}",
+            'icon': 'bi-check2-square text-success'
+        })
+
+    # 2. Поиск по СОБЫТИЯМ (Агенда)
+    events = PlannedEvent.objects.filter(
+        user=request.user,
+        title__icontains=query
+    ).order_by('event_date')[:3]
+
+    for e in events:
+        results.append({
+            'type': 'event',
+            'title': e.title,
+            'subtitle': e.event_date.strftime('%d.%m.%Y %H:%M'),
+            'url': '/',  # Ведет на дашборд
+            'icon': 'bi-calendar-event text-warning'
+        })
+
+        # 3. Поиск по ФИЛЬМАМ И КЛИПАМ
+        videos = Video.objects.filter(title__icontains=query)[:3]
+        for v in videos:
+            # ИСПРАВЛЕНИЕ: просим Django самому правильно собрать ссылку по имени
+            if v.video_type == Video.VideoType.MOVIE:
+                url = reverse('movie_detail', args=[v.pk])
+            else:
+                url = reverse('course_file_player', args=[v.pk])
+
+            results.append({
+                'type': 'media',
+                'title': v.title,
+                'subtitle': 'Медиацентр',
+                'url': url,
+                'icon': 'bi-play-btn-fill text-danger'
+            })
+
+    # 4. Поиск по КУРСАМ
+    courses = Course.objects.filter(title__icontains=query)[:3]
+    for c in courses:
+        results.append({
+            'type': 'course',
+            'title': c.title,
+            'subtitle': 'Академия',
+            'url': f"/learning/course/{c.slug}/",
+            'icon': 'bi-mortarboard-fill text-primary'
+        })
+
+    return JsonResponse({'results': results})
+
+
+@login_required
+def start_hls_stream(request, video_id, audio_idx=0):
+    """Инициализирует сессию просмотра и отдает плейлист m3u8."""
+    session_id = HLSManager.start_session(video_id, audio_idx)
+    playlist_path = HLSManager.HLS_DIR / session_id / 'index.m3u8'
+
+    if not playlist_path.exists():
+        return HttpResponse("Ошибка запуска транскодера HLS", status=500)
+
+    with open(playlist_path, 'r') as f:
+        content = f.read()
+
+    return HttpResponse(content, content_type='application/vnd.apple.mpegurl')
+
+
+@login_required
+def serve_hls_segment(request, video_id, audio_idx, segment_name):
+    """Отдает конкретный .ts сегмент видео."""
+    session_id = f"session_{video_id}_a{audio_idx}"
+    segment_path = HLSManager.HLS_DIR / session_id / segment_name
+
+    if not segment_path.exists():
+        raise Http404("Сегмент не найден")
+
+    return FileResponse(open(segment_path, 'rb'), content_type='video/MP2T')
+
+
+@require_POST
+@login_required
+def create_course_manual_api(request):
+    """API для ручного создания пустого курса через кнопку на сайте"""
+    try:
+        data = json.loads(request.body)
+        title = data.get('title', '').strip()
+        category_id = data.get('category_id')
+
+        if not title or not category_id:
+            return JsonResponse({'status': 'error', 'message': 'Название и категория обязательны.'}, status=400)
+
+        category = get_object_or_404(LearningCategory, id=category_id)
+
+        # Создаем курс (слаг сгенерируется автоматически благодаря переопределенному методу save в models.py)
+        course = Course.objects.create(
+            title=title,
+            learning_category=category,
+            description='<p>Описание пока не добавлено. Нажмите "Редактировать HTML", чтобы вставить информацию о курсе.</p>'
+        )
+
+        return JsonResponse({
+            'status': 'ok',
+            'redirect_url': reverse('course_detail', args=[course.slug])
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@require_POST
+@login_required
+def update_course_html_api(request, course_id):
+    """Надежное сохранение HTML-разметки из TinyMCE и загрузка Обложки"""
+    try:
+        course = get_object_or_404(Course, id=course_id)
+
+        # 1. Сохраняем огромный HTML-текст
+        raw_html = request.POST.get('html_content', '')
+        course.description = raw_html
+
+        # 2. Сохраняем обложку, если её загрузили
+        if 'cover_image' in request.FILES:
+            course.cover = request.FILES['cover_image']
+
+        course.save()
+        return redirect('course_detail', course_slug=course.slug)
+    except Exception as e:
+        return HttpResponse(f"Ошибка сохранения: {str(e)}", status=500)

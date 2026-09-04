@@ -1,0 +1,9 @@
+для создания китайского словаря
+docker compose exec web python manage.py makemessages -l zh_Hans
+
+
+Компилируешь словари командой:
+docker compose exec web python manage.py compilemessages
+
+
+

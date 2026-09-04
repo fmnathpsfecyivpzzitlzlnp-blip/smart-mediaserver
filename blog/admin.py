@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from .services import scan_course_directory, run_bulk_import
 from django.core.files.base import ContentFile
 from .tmdb_client import search_movie, get_movie_details # Наш новый файл
-
+from .models import PlannedEvent, FamilyBoss, ChildTask
 from .services import scan_course_directory  # 🔥 ОБЯЗАТЕЛЬНО ДОБАВИТЬ ЭТОТ ИМПОРТ
 from pathlib import Path
 
@@ -406,6 +406,29 @@ class TrackerEventAdmin(admin.ModelAdmin):
 class MetricGoalAdmin(admin.ModelAdmin):
     list_display = ('title', 'target_value', 'current_value', 'period_start', 'period_end')
     list_filter = ('event_type', 'user')
+
+@admin.register(PlannedEvent)
+class PlannedEventAdmin(admin.ModelAdmin):
+    list_display = ('title', 'event_date', 'user', 'is_notified')
+    list_filter = ('is_notified', 'event_date')
+    search_fields = ('title',)
+# --- РЕГИСТРАЦИЯ БОССА ---
+
+@admin.register(FamilyBoss)
+class FamilyBossAdmin(admin.ModelAdmin):
+    # Какие колонки показывать в общем списке
+    list_display = ('name', 'current_hp', 'max_hp', 'reward_coins', 'is_defeated')
+    # Добавляем фильтр сбоку (побежден / активен)
+    list_filter = ('is_defeated',)
+    # Добавляем поиск по имени
+    search_fields = ('name',)
+
+# --- РЕГИСТРАЦИЯ ДЕТСКИХ ЗАДАЧ (СНАРЯДОВ) ---
+@admin.register(ChildTask)
+class ChildTaskAdmin(admin.ModelAdmin):
+    list_display = ('title', 'user', 'damage', 'reward', 'is_completed')
+    list_filter = ('is_completed', 'user')
+    search_fields = ('title',)
 
 admin.site.register(Post)
 admin.site.register(ClockItem)

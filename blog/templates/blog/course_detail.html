@@ -5,10 +5,73 @@
 
 {% block extra_head %}
     <link href="https://vjs.zencdn.net/8.12.0/video-js.css" rel="stylesheet" />
+
+    <!-- Подключаем чистую, свободную от API-ключей версию TinyMCE -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+
     <style>
         .video-js { width: 100% !important; height: 100% !important; }
         .modal-body.p-0 .video-js { width: 100%; height: auto; }
         .hover-effect:hover { background-color: rgba(255,255,255,0.05) !important; }
+
+        /* УМНЫЙ CSS ДЛЯ ИМПОРТИРОВАННОГО КОДА */
+        .imported-course-content {
+            color: #e9ecef !important;
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        /* Убиваем жесткие фоны, но не трогаем картинки и медиа */
+        .imported-course-content *:not(img):not(svg):not(video):not(a) {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+
+        .imported-course-content h1,
+        .imported-course-content h2,
+        .imported-course-content h3,
+        .imported-course-content h4 {
+            color: #fff !important;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            border-bottom: 1px solid #495057;
+            padding-bottom: 0.3em;
+        }
+
+        .imported-course-content a { color: #3b82f6 !important; text-decoration: none; }
+        .imported-course-content table { width: 100% !important; border-collapse: collapse !important; margin: 1em 0; }
+        .imported-course-content th, .imported-course-content td { border: 1px solid #495057 !important; padding: 10px !important; }
+        .imported-course-content th { background-color: #212529 !important; color: #fff !important; }
+
+        /* Сохраняем и красиво оформляем картинки с донора */
+        .imported-course-content img {
+            max-width: 100% !important;
+            height: auto !important;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: block;
+        }
+
+        /* Стили для чекбоксов (списков задач) из TinyMCE */
+        .imported-course-content ul.tox-checklist { list-style: none; padding-left: 0; }
+        .imported-course-content ul.tox-checklist li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+
+        /* Стили для умной зоны загрузки обложки */
+        #coverDropzone {
+            border: 2px dashed #495057;
+            transition: all 0.2s ease-in-out;
+            outline: none;
+        }
+        #coverDropzone:hover, #coverDropzone:focus {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        #coverDropzone.dragover {
+            border-color: #198754;
+            background-color: rgba(25, 135, 84, 0.1);
+        }
     </style>
 {% endblock %}
 
@@ -27,10 +90,49 @@
 
 {% block content %}
 <div class="row">
+    <!-- ЛЕВАЯ КОЛОНКА -->
     <div class="col-lg-4 mb-4">
+
+        <!-- ОБЛОЖКА КУРСА (ЕСЛИ ЕСТЬ) -->
+        {% if course.cover %}
+        <div class="card bg-dark border-secondary rounded-4 shadow-sm mb-3 overflow-hidden">
+            <img src="{{ course.cover.url }}" class="img-fluid w-100" style="object-fit: cover; max-height: 250px;" alt="Обложка">
+        </div>
+        {% endif %}
+
+        <!-- БЛОК ИМПОРТИРОВАННОГО ОПИСАНИЯ -->
+        <div class="card bg-dark border-secondary rounded-4 shadow-sm mb-4">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center bg-transparent">
+                <h5 class="mb-0 text-white"><i class="bi bi-info-square text-info me-2"></i>О курсе</h5>
+                <div>
+                    <!-- КНОПКА СКРЫТИЯ/РАСКРЫТИЯ (ИНФО) -->
+                    <button class="btn btn-sm btn-outline-info rounded-pill me-1" type="button" data-bs-toggle="collapse" data-bs-target="#courseDescriptionCollapse" aria-expanded="true">
+                        <i class="bi bi-eye"></i> Инфо
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning rounded-pill" data-bs-toggle="modal" data-bs-target="#editHtmlModal">
+                        <i class="bi bi-pencil-square"></i> Изменить
+                    </button>
+                </div>
+            </div>
+
+            <!-- СКРЫВАЕМЫЙ БЛОК -->
+            <div class="collapse show" id="courseDescriptionCollapse">
+                <div class="card-body p-4">
+                    <div class="imported-course-content">
+                        {% if course.description %}
+                            {{ course.description|safe }}
+                        {% else %}
+                            <p class="text-muted small">Скопируйте описание с сайта курса.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- БЛОК СТАТИСТИКИ И УПРАВЛЕНИЯ -->
         <div class="card bg-dark border-secondary text-white shadow-sm sticky-top" style="top: 20px;">
             <div class="card-body">
-                <h5 class="card-title text-primary">О курсе</h5>
+                <h5 class="card-title text-primary">Информация</h5>
                 <div class="mb-3">
                     {% for tag in course.tags.all %}
                         <span class="badge rounded-pill border border-secondary" style="background-color: {{ tag.color|default:'#2c3034' }};">
@@ -38,9 +140,7 @@
                         </span>
                     {% endfor %}
                 </div>
-                <div class="card-text text-light mt-3">
-                    {% if course.description %}{{ course.description|safe }}{% else %}<p class="text-muted small">Авто-импорт</p>{% endif %}
-                </div>
+
                 <div class="mt-4 p-3 bg-secondary bg-opacity-25 rounded border border-secondary">
                     <h6 class="text-white mb-3"><i class="bi bi-pie-chart-fill me-2"></i>Прогресс</h6>
                     <div class="progress mb-3" style="height: 6px; background-color: #444;">
@@ -69,6 +169,7 @@
         </div>
     </div>
 
+    <!-- ПРАВАЯ КОЛОНКА (ФАЙЛЫ) -->
     <div class="col-lg-8">
         <div class="mb-3 d-flex flex-wrap gap-2 filter-buttons">
             <div class="btn-group">
@@ -90,50 +191,102 @@
             </div>
             <div class="list-group list-group-flush" id="filesList">
                 {% for item in files_data %}
-    <div class="list-group-item bg-dark text-white border-secondary p-0 d-flex align-items-stretch hover-effect file-item"
-         data-type="{{ item.type_group }}"
-         data-status="{{ item.status_group }}">
+                <div class="list-group-item bg-dark text-white border-secondary p-0 d-flex align-items-stretch hover-effect file-item"
+                     data-type="{{ item.type_group }}"
+                     data-status="{{ item.status_group }}">
 
-        <div class="d-flex align-items-center flex-grow-1 p-3"
-             style="cursor: pointer;"
-             onclick="{% if item.type_group == 'video' or '.ts' in item.lesson.movie_path.lower %}
-                        openPlayer('{{ item.lesson.title|escapejs }}', '{% url 'serve_video_stream' item.lesson.id %}', {{ item.lesson.id }}, {{ item.timestamp|default:0 }})
-                      {% else %}
-                        window.location.href='{% url 'serve_video_stream' item.lesson.id %}?download=1'
-                      {% endif %}">
+                    <div class="d-flex align-items-center flex-grow-1 p-3"
+                         style="cursor: pointer;"
+                         onclick="{% if item.type_group == 'video' or '.ts' in item.lesson.movie_path.lower %}
+                                    openPlayer('{{ item.lesson.title|escapejs }}', '{% url 'serve_video_stream' item.lesson.id %}', {{ item.lesson.id }}, {{ item.timestamp|default:0 }})
+                                  {% else %}
+                                    window.location.href='{% url 'serve_video_stream' item.lesson.id %}?download=1'
+                                  {% endif %}">
 
-            <div class="me-3" style="width: 24px;">
-                {% if item.is_finished %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
-                {% elif item.timestamp > 0 %}<i class="bi bi-circle-half text-warning fs-5"></i>
-                {% else %}<i class="bi bi-circle text-muted fs-5 opacity-25"></i>{% endif %}
-            </div>
+                        <div class="me-3" style="width: 24px;">
+                            {% if item.is_finished %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            {% elif item.timestamp > 0 %}<i class="bi bi-circle-half text-warning fs-5"></i>
+                            {% else %}<i class="bi bi-circle text-muted fs-5 opacity-25"></i>{% endif %}
+                        </div>
 
-            <div class="me-3 fs-4"><i class="bi {{ item.icon_class }}"></i></div>
+                        <div class="me-3 fs-4"><i class="bi {{ item.icon_class }}"></i></div>
 
-            <div class="flex-grow-1">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-bold">{{ item.lesson.title }}</span>
-                    {% if item.lesson.duration > 0 %}
-                        <span class="badge bg-secondary ms-2 text-white-50 fw-normal">
-                            {{ item.lesson.duration_formatted }}
-                        </span>
-                    {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">{{ item.lesson.title }}</span>
+                                {% if item.lesson.duration > 0 %}
+                                    <span class="badge bg-secondary ms-2 text-white-50 fw-normal">
+                                        {{ item.lesson.duration_formatted }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="{% url 'serve_video_stream' item.lesson.id %}?download=1"
+                       class="p-3 text-muted d-flex align-items-center border-start border-secondary"
+                       title="Скачать файл для внешнего плеера">
+                        <i class="bi bi-download fs-5"></i>
+                    </a>
                 </div>
-            </div>
-        </div>
-
-        <a href="{% url 'serve_video_stream' item.lesson.id %}?download=1"
-           class="p-3 text-muted d-flex align-items-center border-start border-secondary"
-           title="Скачать файл для внешнего плеера">
-            <i class="bi bi-download fs-5"></i>
-        </a>
-    </div>
-{% endfor %}
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
+<!-- ================= МОДАЛЬНЫЕ ОКНА ================= -->
+
+<!-- Модалка для вставки сырого HTML и Обложки (ЖЕЛЕЗОБЕТОННАЯ ФОРМА) -->
+<div class="modal fade" id="editHtmlModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <!-- ВАЖНО: Используем <form> с multipart/form-data для отправки картинок -->
+        <form class="modal-content bg-dark border-secondary text-white shadow-lg" action="/api/course/{{ course.id }}/update-html/" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-pencil-square text-warning me-2"></i>Редактирование курса</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+
+                <!-- УМНАЯ ЗОНА ЗАГРУЗКИ ОБЛОЖКИ -->
+                <div class="mb-4">
+                    <label class="form-label text-info fw-bold"><i class="bi bi-image"></i> Главная обложка курса:</label>
+                    <div id="coverDropzone" class="rounded p-4 text-center position-relative cursor-pointer" tabindex="0">
+                        <input type="file" id="coverFileInput" name="cover_image" accept="image/*" class="d-none">
+                        <!-- Это поле для отправки URL, если пользователь вставил ссылку на картинку -->
+                        <input type="hidden" id="coverUrlInput" name="cover_image_url">
+
+                        <div id="coverPreviewContainer" class="d-none">
+                            <img id="coverPreview" src="" class="img-fluid mx-auto mb-2" style="max-height: 200px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                            <div class="text-warning small fw-bold" id="coverFileName">Файл готов к загрузке</div>
+                        </div>
+
+                        <div id="coverPlaceholder">
+                            <i class="bi bi-cloud-arrow-up display-4 text-secondary"></i>
+                            <p class="mt-2 mb-0 text-white-50">Кликните, перетащите файл или нажмите <b>Ctrl+V</b> (картинка или URL)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="form-label text-info fw-bold"><i class="bi bi-layout-text-window"></i> Описание и главы (Разметка):</label>
+                <div class="text-muted small mb-2">Выделите весь текст с картинками на сайте курса (Ctrl+C) и вставьте сюда (Ctrl+V). Чтобы создать чекбокс, используйте кнопку в меню редактора.</div>
+
+                <!-- Редактор TinyMCE -->
+                <textarea id="tinyEditor" name="html_content">{{ course.description|safe }}</textarea>
+
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-warning fw-bold" id="saveCourseBtn">
+                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Сохранить изменения
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модалка Плеера -->
 <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content bg-black border-secondary">
@@ -148,6 +301,7 @@
     </div>
 </div>
 
+<!-- Модалка Планировщика -->
 <div class="modal fade" id="studyPlanModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark text-white border-secondary shadow-lg">
@@ -195,7 +349,10 @@
             <div class="modal-footer border-secondary"><button id="savePlanBtn" class="btn btn-success w-100">🚀 Поехали!</button></div>
         </div>
     </div>
-</div> <div class="modal fade" id="moveCourseModal" tabindex="-1">
+</div>
+
+<!-- Модалка Перемещения курса -->
+<div class="modal fade" id="moveCourseModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark text-white border-secondary shadow-lg">
             <div class="modal-header border-secondary">
@@ -230,39 +387,189 @@
 {% block extra_scripts %}
 <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>
 <script>
+    // --- 1. УМНАЯ ЗОНА ЗАГРУЗКИ ОБЛОЖКИ (DND + ПАСТА) ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropzone = document.getElementById('coverDropzone');
+        const fileInput = document.getElementById('coverFileInput');
+        const urlInput = document.getElementById('coverUrlInput');
+        const previewContainer = document.getElementById('coverPreviewContainer');
+        const previewImg = document.getElementById('coverPreview');
+        const placeholder = document.getElementById('coverPlaceholder');
+        const fileNameDisplay = document.getElementById('coverFileName');
+
+        // Открытие диалога выбора файла по клику
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // Предотвращаем стандартное поведение браузера при перетаскивании
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        // Подсветка зоны при перетаскивании
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
+        });
+
+        // Обработка сброса файла (Drop)
+        dropzone.addEventListener('drop', function(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            if (files.length) {
+                fileInput.files = files; // Программно устанавливаем файл в скрытый input
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // Обработка выбора файла через кнопку
+        fileInput.addEventListener('change', function() {
+            if (this.files.length) handleFileSelect(this.files[0]);
+        });
+
+        // Глобальный перехват Ctrl+V (Paste) когда открыто модальное окно
+        document.getElementById('editHtmlModal').addEventListener('paste', function(e) {
+            // Если курсор сейчас находится внутри редактора TinyMCE или другого поля ввода, игнорируем!
+            if (e.target.closest('.tox-tinymce') || e.target.tagName === 'INPUT') return;
+
+            let clipboardData = e.clipboardData || window.clipboardData;
+
+            // 1. Пытаемся достать картинку
+            for (let i = 0; i < clipboardData.items.length; i++) {
+                if (clipboardData.items[i].type.indexOf('image') !== -1) {
+                    let file = clipboardData.items[i].getAsFile();
+                    let dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
+                    handleFileSelect(file);
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            // 2. Пытаемся достать URL
+            let pastedText = clipboardData.getData('text');
+            if (pastedText && pastedText.match(/^https?:\/\/.+\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i)) {
+                handleUrlSelect(pastedText);
+                e.preventDefault();
+            }
+        });
+
+        function handleFileSelect(file) {
+            urlInput.value = ''; // Очищаем URL, если выбрали файл
+            fileNameDisplay.textContent = file.name;
+            let reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = function() {
+                previewImg.src = reader.result;
+                showPreview();
+            }
+        }
+
+        function handleUrlSelect(url) {
+            fileInput.value = ''; // Очищаем файл, если вставили URL
+            urlInput.value = url;
+            fileNameDisplay.textContent = 'Изображение по ссылке';
+            previewImg.src = url;
+            showPreview();
+        }
+
+        function showPreview() {
+            placeholder.classList.add('d-none');
+            previewContainer.classList.remove('d-none');
+        }
+
+        // --- 2. ИНИЦИАЛИЗАЦИЯ ИСПРАВЛЕННОГО TINYMCE БЕЗ ПЛАШЕК ---
+        const isDark = document.documentElement.classList.contains('theme-dark') || true;
+
+        tinymce.init({
+            selector: '#tinyEditor',
+            promotion: false,
+            license_key: 'gpl',
+            height: 500,
+            menubar: true,
+            skin: isDark ? 'oxide-dark' : 'oxide',
+            content_css: isDark ? 'dark' : 'default',
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'table', 'help', 'wordcount', 'codesample'
+            ],
+            toolbar: 'undo redo | blocks | bold italic forecolor | codesample | alignleft aligncenter alignright alignjustify | bullist numlist checklist outdent indent | table link image | removeformat | fullscreen',
+            codesample_languages: [
+                {text: 'HTML/XML', value: 'markup'},
+                {text: 'JavaScript', value: 'javascript'},
+                {text: 'JSON', value: 'json'},
+                {text: 'CSS', value: 'css'},
+                {text: 'Python', value: 'python'},
+                {text: 'C++', value: 'cpp'}
+            ],
+            image_title: true,
+            automatic_uploads: true,
+            file_picker_types: 'image',
+            // Конвертируем картинки в base64 при вставке в редактор текста
+            images_upload_handler: function (blobInfo, progress) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(blobInfo.blob());
+                    reader.onload = function () { resolve(reader.result); };
+                    reader.onerror = function (error) { reject({ message: 'Ошибка чтения файла: ' + error.message, remove: true }); };
+                });
+            },
+            table_default_attributes: { border: '1' },
+            table_default_styles: { 'width': '100%', 'border-collapse': 'collapse' },
+            setup: function(editor) {
+                // Синхронизация при отправке формы
+                editor.on('change', function () { editor.save(); });
+            },
+            verify_html: false
+        });
+    });
+
+    // Изменение текста кнопки при сохранении формы
+    document.querySelector('form').addEventListener('submit', function() {
+        const btn = document.getElementById('saveCourseBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Сохраняю...';
+    });
+
+
+    // --- 3. ПЛЕЕР И ОСТАЛЬНАЯ ЛОГИКА ---
     let player = null;
     let currentVideoId = null;
     let lastUpdateTime = 0;
     const csrfToken = '{{ csrf_token }}';
 
-    // 1. ПЛЕЕР
     function openPlayer(title, url, videoId, startTime) {
-    document.getElementById('videoTitle').textContent = title;
-    currentVideoId = videoId;
+        document.getElementById('videoTitle').textContent = title;
+        currentVideoId = videoId;
 
-    if (videojs.getPlayer('mainPlayer')) { videojs.getPlayer('mainPlayer').dispose(); }
-    document.querySelector('#videoModal .modal-body').innerHTML = '<video id="mainPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>';
+        if (videojs.getPlayer('mainPlayer')) { videojs.getPlayer('mainPlayer').dispose(); }
+        document.querySelector('#videoModal .modal-body').innerHTML = '<video id="mainPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>';
 
-    new bootstrap.Modal(document.getElementById('videoModal')).show();
+        new bootstrap.Modal(document.getElementById('videoModal')).show();
 
-    // --- ОПРЕДЕЛЯЕМ ТИП ДЛЯ ПЛЕЕРА ---
-    let mimeType = 'video/mp4'; // По умолчанию
-    if (url.toLowerCase().endsWith('.mkv')) {
-        mimeType = 'video/x-matroska';
-    } else if (url.toLowerCase().endsWith('.ts') || url.includes('.ts')) {
-        mimeType = 'video/mp2t'; // Тип для TS
-    }
+        let mimeType = 'video/mp4';
+        if (url.toLowerCase().endsWith('.mkv')) {
+            mimeType = 'video/x-matroska';
+        } else if (url.toLowerCase().endsWith('.ts') || url.includes('.ts')) {
+            mimeType = 'video/mp2t';
+        }
 
-    player = videojs('mainPlayer', {
-        fluid: true,
-        playbackRates: [0.5, 1, 1.5, 2],
-        sources: [{ src: url, type: mimeType }]
-    });
+        player = videojs('mainPlayer', {
+            fluid: true,
+            playbackRates: [0.5, 1, 1.5, 2],
+            sources: [{ src: url, type: mimeType }]
+        });
 
-    player.ready(function() {
-        if (startTime > 0) player.currentTime(startTime);
-        player.play().catch(() => {});
-    });
+        player.ready(function() {
+            if (startTime > 0) player.currentTime(startTime);
+            player.play().catch(() => {});
+        });
 
         player.on('timeupdate', function() {
             const t = Math.floor(player.currentTime());
@@ -275,13 +582,11 @@
         player.on('ended', () => saveProgress(currentVideoId, player.currentTime(), true));
     }
 
-    // Добавили параметр isFinished
     function saveProgress(videoId, time, isFinished = false) {
         if(!videoId) return;
         fetch(`/api/videos/${videoId}/progress/`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
-            // Теперь отправляем флаг на сервер
             body: JSON.stringify({timestamp: Math.floor(time), is_finished: isFinished})
         });
     }
@@ -293,7 +598,7 @@
         player = null;
     });
 
-    // 2. ФИЛЬТРАЦИЯ
+    // 4. ФИЛЬТРАЦИЯ
     function filterFiles(filterStr, btn) {
         document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -308,7 +613,7 @@
         });
     }
 
-    // 3. ПЛАНИРОВЩИК
+    // 5. ПЛАНИРОВЩИК
     document.addEventListener('DOMContentLoaded', function() {
         const startInput = document.getElementById('planStartDate');
         if(startInput) startInput.valueAsDate = new Date();
@@ -354,9 +659,9 @@
         }
     });
 
-    // 4. УДАЛЕНИЕ КУРСА
+    // 6. УДАЛЕНИЕ КУРСА
     function deleteCourse(courseId) {
-        if(confirm("🚨 Вы уверены, что хотите удалить весь курс и все его уроки из базы? (Файлы на диске останутся целы). Это действие необратимо!")) {
+        if(confirm("🚨 Вы уверены, что хотите удалить весь курс и все его уроки из базы? Это действие необратимо!")) {
             fetch(`/api/course/${courseId}/delete/`, {
                 method: 'POST',
                 headers: {
@@ -367,7 +672,6 @@
             .then(res => res.json())
             .then(data => {
                 if(data.status === 'ok') {
-                    // Перекидываем пользователя обратно в корень Центра Обучения
                     window.location.href = "{% url 'learning_root' %}";
                 } else {
                     alert("Ошибка: " + data.message);
@@ -377,7 +681,7 @@
         }
     }
 
-    // ПЕРЕМЕЩЕНИЕ КУРСА
+    // 7. ПЕРЕМЕЩЕНИЕ КУРСА
     document.getElementById('confirmMoveBtn')?.addEventListener('click', function() {
         const newCatId = document.getElementById('newCategorySelect').value;
         const btn = this;
@@ -401,7 +705,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.status === 'ok') {
-                window.location.reload(); // Перезагружаем страницу, чтобы увидеть новую хлебную крошку
+                window.location.reload();
             } else {
                 alert("Ошибка: " + data.message);
                 btn.disabled = false;

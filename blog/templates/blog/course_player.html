@@ -1,156 +1,261 @@
-{% extends "blog/base.html" %}
+{% extends 'blog/base.html' %}
+{% load static %}
 
-{% block title %}{{ file.name }}{% endblock %}
+{% block title %}{{ file.title }} — Плеер JARVIS{% endblock %}
 
 {% block extra_head %}
-<link href="https://vjs.zencdn.net/8.12.0/video-js.css" rel="stylesheet" />
+<!-- Video.js стили -->
+<link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
 <style>
-    .player-wrapper {
-        max-width: 1100px;
+    .player-container {
+        max-width: 1200px;
         margin: 0 auto;
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        min-height: 500px; /* Чтобы документы не были сплюснуты */
-        display: flex;     /* Центровка */
-        flex-direction: column;
     }
-
-    /* Стили для документов (HTML/PDF) внутри темного сайта */
-    .doc-frame {
+    /* Темный премиальный стиль для Video.js */
+    .video-js {
         width: 100%;
-        height: 80vh; /* На всю высоту экрана */
-        background: #fff; /* Документы обычно читают на белом */
-        border: none;
+        height: 65vh;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        background-color: #0b0c10;
     }
-
-    .lesson-nav {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
+    .video-js .vjs-big-play-button {
+        background-color: rgba(13, 110, 253, 0.8) !important;
+        border: none !important;
+        border-radius: 50% !important;
+        width: 80px !important;
+        height: 80px !important;
+        line-height: 80px !important;
+        margin-top: -40px !important;
+        margin-left: -40px !important;
+        font-size: 40px !important;
+        transition: transform 0.2s, background-color 0.2s;
+    }
+    .video-js:hover .vjs-big-play-button {
+        background-color: #0d6efd !important;
+        transform: scale(1.1);
+    }
+    .video-js .vjs-control-bar {
+        background: linear-gradient(to top, rgba(0,0,0,0.9), transparent) !important;
+        height: 50px;
+    }
+    .audio-badge {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .audio-badge:hover, .audio-badge.active {
+        background-color: #0d6efd !important;
+        color: #fff !important;
+        border-color: #0d6efd !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'learning_root' %}">Обучение</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'course_detail' course.slug %}">{{ course.title }}</a></li>
-        <li class="breadcrumb-item active text-light" aria-current="page">{{ file.name|truncatechars:30 }}</li>
-      </ol>
-    </nav>
+<div class="player-container py-3">
 
-    <h3>{{ file.name }}</h3>
-
-    <div class="player-wrapper">
-
-        {{% if file_type == 'video' %}
-            <video
-                id="course-video"
-                class="video-js vjs-big-play-centered vjs-theme-city vjs-fluid"
-                controls
-                preload="auto"
-                crossorigin="anonymous"
-                data-setup='{"playbackRates": [0.5, 1, 1.25, 1.5, 2]}'
-            >
-                <source src="{% url 'serve_course_file' file.id %}" type="video/mp4">
-
-                {% if subtitle_file %}
-                    <track
-                        kind="captions"
-                        src="{% url 'serve_course_file' subtitle_file.id %}"
-                        srclang="ru"
-                        label="Субтитры"
-                        default
-                    >
-                {% endif %}
-                <p class="vjs-no-js">JS должен быть включен.</p>
-            </video>
-
-        {% elif file_type == 'document' %}
-            <iframe src="{% url 'serve_course_file' file.id %}" class="doc-frame"></iframe>
-
-        {% else %}
-            <div class="d-flex justify-content-center align-items-center h-100 text-white p-5 flex-column">
-                <i class="bi bi-file-earmark-binary display-1 mb-3"></i>
-                <h4>Этот файл нельзя просмотреть в браузере</h4>
-                <a href="{% url 'serve_course_file' file.id %}" class="btn btn-primary mt-3">Скачать файл</a>
+    <!-- Верхняя панель навигации -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center">
+            <a href="{% url 'course_detail' course.slug %}" class="btn btn-outline-secondary btn-sm me-3 rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> К курсу
+            </a>
+            <div>
+                <h4 class="text-white mb-0 fw-bold">{{ file.title }}</h4>
+                <small class="text-muted">{{ course.title }}</small>
             </div>
-        {% endif %}
-
+        </div>
+        <div class="d-flex gap-2">
+            {% if previous_file %}
+            <a href="{% url 'course_file_player' previous_file.id %}" class="btn btn-dark border-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-skip-backward-fill me-1"></i> Предыдущий
+            </a>
+            {% endif %}
+            {% if next_file %}
+            <a href="{% url 'course_file_player' next_file.id %}" class="btn btn-primary btn-sm rounded-pill px-3">
+                Следующий <i class="bi bi-skip-forward-fill ms-1"></i>
+            </a>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="lesson-nav">
-        {% if previous_file %}
-            <a href="{% url 'course_file_player' previous_file.id %}" class="btn btn-outline-secondary">
-                ← {{ previous_file.name|truncatechars:20 }}
-            </a>
-        {% else %}
-            <button class="btn btn-outline-secondary" disabled>← Начало</button>
-        {% endif %}
-
-        <a href="{% url 'course_detail' course.slug %}" class="btn btn-primary">
-            Список уроков
-        </a>
-
-        {% if next_file %}
-            <a href="{% url 'course_file_player' next_file.id %}" class="btn btn-outline-secondary">
-                {{ next_file.name|truncatechars:20 }} →
-            </a>
-        {% else %}
-            <button class="btn btn-outline-secondary" disabled>Конец →</button>
-        {% endif %}
+    <!-- Основной контейнер плеера -->
+    <div class="position-relative mb-4">
+        <video
+            id="jarvis-player"
+            class="video-js vjs-big-play-centered vjs-default-skin"
+            controls
+            preload="auto"
+            poster="{% if file.cover %}{{ file.cover.url }}{% endif %}">
+            <source src="/api/stream/hls/{{ file.id }}/0/index.m3u8" type="application/x-mpegURL">
+            <p class="vjs-no-js">
+                Для просмотра видео включите JavaScript и обновите браузер до актуальной версии.
+            </p>
+        </video>
     </div>
+
+    <!-- Панель управления дорожками и метаданными -->
+    <div class="card bg-dark border-secondary rounded-4 shadow-sm p-3 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+            <!-- Выбор аудиодорожек -->
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="text-muted small fw-bold text-uppercase me-1">
+                    <i class="bi bi-volume-up-fill me-1 text-info"></i> Озвучка:
+                </span>
+                {% if file.audio_tracks %}
+                    {% for track in file.audio_tracks %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary rounded-pill audio-badge {% if forloop.first %}active{% endif %}"
+                            data-audio-idx="{{ forloop.counter0 }}"
+                            onclick="switchAudioTrack({{ forloop.counter0 }}, this)">
+                        {{ track.title|default:"Аудио" }} ({{ track.language|upper }})
+                    </button>
+                    {% endfor %}
+                {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill active" disabled>
+                        Основная дорожка (По умолчанию)
+                    </button>
+                {% endif %}
+            </div>
+
+            <!-- Статус сохранения прогресса -->
+            <div class="text-muted small d-flex align-items-center">
+                <span id="save-status" class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary rounded-pill">
+                    <i class="bi bi-cloud-check me-1"></i> Синхронизировано
+                </span>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-{% if file_type == 'video' %}
-<script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const player = videojs('course-video');
-        const csrfToken = '{{ csrf_token }}';
-        const fileId = "{{ file.id }}";
-        let lastUpdateTime = 0;
+<!-- Подключение Video.js -->
+<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 
-        player.on('timeupdate', function() {
-            const currentTime = Math.floor(player.currentTime());
-            if (currentTime > lastUpdateTime + 15) {
-                lastUpdateTime = currentTime;
-                fetch(`/api/learning/progress/${fileId}/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                    body: JSON.stringify({ timestamp: currentTime })
-                }).catch(err => console.error(err));
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const videoId = {{ file.id }};
+    let currentAudioIdx = 0;
+    const csrfToken = '{{ csrf_token }}';
+
+    // Инициализация Video.js
+    const player = videojs('jarvis-player', {
+        fluid: true,
+        playbackRates: [0.75, 1, 1.25, 1.5, 2],
+        userActions: {
+            hotkeys: true
+        }
+    });
+
+    // 1. ПЕРЕКЛЮЧЕНИЕ АУДИОДОРОЖЕК
+    window.switchAudioTrack = function(newAudioIdx, btnElement) {
+        if (newAudioIdx === currentAudioIdx) return;
+
+        const currentTime = player.currentTime();
+        const isPaused = player.paused();
+
+        // Обновляем визуальный активный статус кнопок
+        document.querySelectorAll('.audio-badge').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+
+        currentAudioIdx = newAudioIdx;
+
+        // Переключаем HLS-поток на новую сессию
+        const newSrc = `/api/stream/hls/${videoId}/${currentAudioIdx}/index.m3u8`;
+
+        player.src({
+            src: newSrc,
+            type: 'application/x-mpegURL'
+        });
+
+        // Возвращаем воспроизведение на то же место
+        player.one('loadedmetadata', function() {
+            player.currentTime(currentTime);
+            if (!isPaused) {
+                player.play().catch(e => console.log("Автозапуск после переключения дорожки:", e));
             }
         });
-        // 🔥 ДОБАВИТЬ ВОТ ЭТОТ БЛОК 🔥
-        player.on('ended', function() {
-            fetch(`/api/learning/progress/${fileId}/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ timestamp: Math.floor(player.currentTime()), is_finished: true })
-            }).catch(err => console.error(err));
-        });
-    });
-</script>
-{% elif file_type == 'document' %}
-<script>
-    setTimeout(() => {
-        fetch(`/api/learning/progress/{{ file.id }}/`, {
+    };
+
+    // 2. ОТСЛЕЖИВАНИЕ И СОХРАНЕНИЕ ПРОГРЕССА
+    function saveProgress(isFinished = false) {
+        const time = Math.floor(player.currentTime());
+        if (time <= 0 && !isFinished) return;
+
+        const statusBadge = document.getElementById('save-status');
+
+        fetch(`/api/learning/progress/${videoId}/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrfToken
             },
-            // 🔥 ДОБАВИЛИ is_finished: true 🔥
-            body: JSON.stringify({ timestamp: 100, is_finished: true })
-        }).then(r => console.log("Документ засчитан"));
-    }, 5000); // Через 5 секунд после открытия
+            body: JSON.stringify({
+                timestamp: time,
+                is_finished: isFinished
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok' && statusBadge) {
+                statusBadge.className = 'badge bg-success bg-opacity-25 text-success border border-success rounded-pill';
+                statusBadge.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Сохранено';
+                setTimeout(() => {
+                    statusBadge.className = 'badge bg-secondary bg-opacity-25 text-secondary border border-secondary rounded-pill';
+                    statusBadge.innerHTML = '<i class="bi bi-cloud-check me-1"></i> Синхронизировано';
+                }, 2000);
+            }
+        })
+        .catch(err => console.error("Ошибка сохранения прогресса:", err));
+    }
+
+    // Сохраняем каждые 7 секунд во время просмотра
+    setInterval(() => {
+        if (!player.paused()) {
+            saveProgress(false);
+        }
+    }, 7000);
+
+    // Сохраняем при паузе и окончании
+    player.on('pause', () => saveProgress(false));
+    player.on('ended', () => saveProgress(true));
+
+    // 3. ГОРЯЧИЕ КЛАВИШИ УПРАВЛЕНИЯ
+    document.addEventListener('keydown', function(e) {
+        // Игнорируем нажатия, если курсор в поле ввода текста
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+        switch(e.code) {
+            case 'Space':
+                e.preventDefault();
+                player.paused() ? player.play() : player.pause();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                player.currentTime(player.currentTime() + 10);
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                player.currentTime(player.currentTime() - 10);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                player.volume(Math.min(player.volume() + 0.1, 1));
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                player.volume(Math.max(player.volume() - 0.1, 0));
+                break;
+            case 'KeyF':
+                e.preventDefault();
+                player.isFullscreen() ? player.exitFullscreen() : player.requestFullscreen();
+                break;
+        }
+    });
+});
 </script>
-{% endif %}
 {% endblock %}

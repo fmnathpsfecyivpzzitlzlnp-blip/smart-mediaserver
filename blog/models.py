@@ -78,6 +78,7 @@ class Course(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название курса")
     slug = models.SlugField(unique=True, verbose_name="URL (Slug)")
     description = HTMLField(verbose_name="Описание", blank=True)
+    cover = models.ImageField(upload_to='course_covers/', blank=True, null=True, verbose_name="Обложка курса")
 
     # --- НОВОЕ ПОЛЕ: Путь к папке на диске ---
     source_path = models.CharField(
@@ -263,6 +264,9 @@ class Video(models.Model):
                                            verbose_name="Путь к VTT")
     subtitles_path = models.FileField(upload_to='subtitles', max_length=500, blank=True, null=True,
                                       verbose_name="Путь к субтитрам")
+
+    audio_tracks = models.JSONField(default=list, blank=True, verbose_name="Аудиодорожки")
+    subtitle_tracks = models.JSONField(default=list, blank=True, verbose_name="Субтитры")
 
     LEARNING_STATUS_CHOICES = [
         ('new', '🆕 Новый'),
@@ -934,6 +938,7 @@ class ChildTask(models.Model):
     icon = models.CharField(max_length=50, default='🌟')      # Эмодзи-иконка
     is_completed = models.BooleanField(default=False)        # Выполнено или нет
     created_at = models.DateTimeField(auto_now_add=True)
+    damage = models.IntegerField(default=50, verbose_name="Урон по боссу")
 
     def __str__(self):
         return f"{self.title} ({self.reward} ★)"
@@ -947,3 +952,49 @@ class PurchaseLog(models.Model):
 
     def __str__(self):
         return f"{self.user.username} купил {self.title}"
+
+
+class PlannedEvent(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Пользователь")
+    title = models.CharField(max_length=200, verbose_name="Название события")
+    description = models.TextField(blank=True, verbose_name="Описание или ссылка")
+
+    event_date = models.DateTimeField(verbose_name="Дата и время события")
+    cover = models.ImageField(upload_to='events_covers/', blank=True, null=True, verbose_name="Обложка")
+    sound_file = models.FileField(upload_to='sounds/', blank=True, null=True, verbose_name="Особый звук (опционально)")
+    is_notified = models.BooleanField(default=False, verbose_name="Уведомление сработало")
+
+    # 👇 ДОБАВЛЯЕМ НОВОЕ ПОЛЕ 👇
+    is_important = models.BooleanField(default=False, verbose_name="Супер важное")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.event_date.strftime('%d.%m.%Y %H:%M')})"
+
+    class Meta:
+        verbose_name = "Плановое событие"
+        verbose_name_plural = "Плановые события"
+        ordering = ['event_date']
+
+
+class FamilyBoss(models.Model):
+    """Модель босса, которого ребенок должен победить, выполняя задания"""
+    name = models.CharField(max_length=100, verbose_name="Имя Босса (например: Ржавый Танк)")
+    max_hp = models.IntegerField(default=1000, verbose_name="Максимальная броня (HP)")
+    current_hp = models.IntegerField(default=1000, verbose_name="Текущая броня (HP)")
+
+    # Можно будет загрузить картинку страшного танка или монстра
+    image = models.ImageField(upload_to='bosses/', blank=True, null=True, verbose_name="Аватар Босса")
+
+    reward_coins = models.IntegerField(default=100, verbose_name="Награда за уничтожение (Монеты)")
+    is_defeated = models.BooleanField(default=False, verbose_name="Побежден")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} (HP: {self.current_hp}/{self.max_hp})"
+
+    class Meta:
+        verbose_name = "Босс (Family Hub)"
+        verbose_name_plural = "Боссы (Family Hub)"

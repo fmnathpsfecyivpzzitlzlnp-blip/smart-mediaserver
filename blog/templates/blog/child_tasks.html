@@ -1,192 +1,249 @@
-{% extends 'blog/base.html' %}
-{% block title %}Do it! - Мои задания{% endblock %}
+{% extends "blog/base.html" %}
+{% load static %}
+
+{% block title %}Боевые задачи{% endblock %}
 
 {% block extra_head %}
 <style>
-    .kids-app-wrapper {
-        --bg-green-light: #e8f5e9;
-        --header-green: #aed581;
-        --text-main: #2c3e50;
-        --text-muted: #757575;
-        --white: #ffffff;
-        --btn-green: #aed581;
-        --coin-yellow: #fbbc04;
-        
-        background-color: var(--bg-green-light);
-        color: var(--text-main);
-        max-width: 500px;
-        margin: 0 auto;
-        border-radius: 20px;
+    /* Анимация тряски танка при попадании */
+    @keyframes shake {
+        0% { transform: translate(1px, 1px) rotate(0deg); }
+        10% { transform: translate(-1px, -2px) rotate(-1deg); }
+        20% { transform: translate(-3px, 0px) rotate(1deg); }
+        30% { transform: translate(3px, 2px) rotate(0deg); }
+        40% { transform: translate(1px, -1px) rotate(1deg); }
+        50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        60% { transform: translate(-3px, 1px) rotate(0deg); }
+        70% { transform: translate(3px, 1px) rotate(-1deg); }
+        80% { transform: translate(-1px, -1px) rotate(1deg); }
+        90% { transform: translate(1px, 2px) rotate(0deg); }
+        100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+    .boss-hit {
+        animation: shake 0.5s;
+        animation-iteration-count: 1;
+        filter: drop-shadow(0 0 10px red);
+    }
+
+    /* Вылетающий урон */
+    .damage-popup {
+        position: absolute;
+        color: #ff3333;
+        font-weight: 900;
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        pointer-events: none;
+        animation: floatUp 1s ease-out forwards;
+        z-index: 100;
+    }
+    @keyframes floatUp {
+        0% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+    }
+
+    .hp-bar-container {
+        height: 30px;
+        background-color: #333;
+        border: 3px solid #222;
+        border-radius: 15px;
         overflow: hidden;
         position: relative;
-        padding-bottom: 80px;
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        min-height: 600px;
     }
-
-    .kids-app-wrapper .top-profile-bar {
-        background-color: var(--header-green);
-        padding: 40px 20px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-radius: 0 0 20px 20px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
+    .hp-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #dc3545, #ffc107);
+        transition: width 0.5s ease-in-out;
     }
-
-    .kids-app-wrapper .profile-info { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
-    .kids-app-wrapper .avatar-mini { width: 45px; height: 45px; background-color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
-    
-    .kids-app-wrapper .balance-box { display: flex; flex-direction: column; align-items: flex-end; }
-    .kids-app-wrapper .balance-label { font-size: 10px; text-transform: uppercase; font-weight: bold; color: rgba(0,0,0,0.5); margin-bottom: 2px;}
-    .kids-app-wrapper .balance { display: flex; align-items: center; gap: 5px; font-weight: 900; font-size: 24px; }
-    
-    .kids-app-wrapper .coin {
-        color: var(--coin-yellow); font-size: 18px; font-weight: bold;
-        background: radial-gradient(circle, #fff9c4 0%, #fbbc04 100%);
-        border-radius: 50%; width: 26px; height: 26px;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    .hp-text {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        font-weight: bold;
+        color: white;
+        line-height: 24px;
+        text-shadow: 1px 1px 2px black;
     }
-
-    /* Список заданий */
-    .kids-app-wrapper .tasks-container { padding: 0 20px; display: flex; flex-direction: column; gap: 15px; }
-    .kids-app-wrapper .section-title { font-size: 18px; font-weight: 800; margin-bottom: 5px; }
-
-    .kids-app-wrapper .kid-task-card {
-        background-color: var(--white);
-        border-radius: 16px;
-        padding: 15px;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
+    .task-card {
+        background-color: #1e1e2f;
+        transition: transform 0.2s;
     }
-
-    .kids-app-wrapper .kid-task-card.completed {
-        opacity: 0.6;
-        transform: scale(0.98);
-        background-color: #f1f8e9;
+    .task-card:active {
+        transform: scale(0.95);
     }
-
-    .kids-app-wrapper .task-icon { font-size: 35px; margin-right: 15px; }
-    
-    .kids-app-wrapper .task-details { flex-grow: 1; }
-    .kids-app-wrapper .task-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
-    .kids-app-wrapper .task-reward { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: bold; color: #f5b000; }
-
-    /* Круглый чекбокс */
-    .kids-app-wrapper .checkbox-wrapper { position: relative; width: 34px; height: 34px; flex-shrink: 0; margin-left: 10px; }
-    .kids-app-wrapper .checkbox-wrapper input { opacity: 0; width: 0; height: 0; }
-    .kids-app-wrapper .custom-checkmark { position: absolute; top: 0; left: 0; height: 34px; width: 34px; background-color: #f5f5f5; border: 3px solid #e0e0e0; border-radius: 50%; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-    
-    .kids-app-wrapper .checkbox-wrapper input:checked ~ .custom-checkmark { background-color: var(--btn-green); border-color: var(--btn-green); }
-    .kids-app-wrapper .custom-checkmark::after { content: "✓"; color: white; font-weight: 900; font-size: 20px; display: none; }
-    .kids-app-wrapper .checkbox-wrapper input:checked ~ .custom-checkmark::after { display: block; }
-
-    /* Нижнее меню */
-    .kids-app-wrapper .bottom-nav { position: absolute; bottom: 0; width: 100%; background-color: #7cb342; display: flex; justify-content: space-around; padding: 15px 20px 20px; border-radius: 20px 20px 0 0; z-index: 20; }
-    .kids-app-wrapper .nav-item { font-size: 26px; opacity: 0.5; cursor: pointer; text-decoration: none;}
-    .kids-app-wrapper .nav-item.active { opacity: 1; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <div class="kids-app-wrapper">
-        
-        <div class="top-profile-bar">
-            <div class="profile-info">
-                <div class="avatar-mini">👦🏻</div>
-                <span>Привет, {{ child_name }}!</span>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-dark p-3 rounded-4 shadow-sm border border-secondary border-opacity-50">
+        <div class="d-flex align-items-center">
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.5rem; font-weight: bold;">
+                {{ child_name|make_list|first|upper }}
             </div>
-            <div class="balance-box">
-                <div class="balance-label">Мой баланс</div>
-                <div class="balance">
-                    <span id="display-coins">{{ child_coins }}</span> <div class="coin">★</div>
-                </div>
+            <div>
+                <h5 class="mb-0 text-white">Командир {{ child_name }}</h5>
+                <small class="text-muted">Готов к бою</small>
             </div>
         </div>
-
-        <div class="tasks-container">
-            <div class="section-title">Твои дела на сегодня:</div>
-
-            {% for task in tasks %}
-            <label class="kid-task-card" id="card-{{ task.id }}">
-                <div class="task-icon">{{ task.icon }}</div>
-                <div class="task-details">
-                    <div class="task-title">{{ task.title }}</div>
-                    <div class="task-reward">+{{ task.reward }} <span class="coin" style="width:14px;height:14px;font-size:10px;">★</span></div>
-                </div>
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" onchange="toggleTask(this, {{ task.id }})">
-                    <span class="custom-checkmark"></span>
-                </div>
-            </label>
-            {% empty %}
-            <div class="text-center p-4 text-muted">
-                <strong>На сегодня заданий нет! 🎉</strong><br>
-                Можно отдыхать или попросить родителей добавить новые.
-            </div>
-            {% endfor %}
+        <div class="text-end">
+            <h2 class="mb-0 text-warning" id="coinBalance">{{ child_coins }} <i class="bi bi-coin"></i></h2>
         </div>
-
-        <nav class="bottom-nav">
-            <a href="{% url 'reward_store' %}" class="nav-item" title="Магазин">🧺</a>
-            <a href="{% url 'child_tasks' %}" class="nav-item active" title="Задания">📋</a>
-            <a href="{% url 'dashboard' %}" class="nav-item" title="Профиль">👦🏻</a>
-        </nav>
-
     </div>
+
+    {% if boss %}
+    <div class="card bg-dark border-danger mb-4 shadow-lg rounded-4 overflow-hidden position-relative" id="bossArena">
+        <div class="card-body text-center p-5 position-relative">
+            <h2 class="text-white fw-bold mb-4 text-uppercase">Цель: {{ boss.name }}</h2>
+
+            <div id="bossImageContainer" class="mb-4 position-relative d-inline-block">
+                {% if boss.image %}
+                    <img src="{{ boss.image.url }}" alt="{{ boss.name }}" style="max-height: 200px;" id="bossImage">
+                {% else %}
+                    <i class="bi bi-robot display-1 text-danger" id="bossImage" style="font-size: 8rem;"></i>
+                {% endif %}
+            </div>
+
+            <div class="hp-bar-container mx-auto shadow" style="max-width: 500px;">
+                <div class="hp-bar-fill" id="bossHpBar" style="width: {% widthratio boss.current_hp boss.max_hp 100 %}%;"></div>
+                <div class="hp-text" id="bossHpText">{{ boss.current_hp }} / {{ boss.max_hp }} HP</div>
+            </div>
+            <p class="text-muted small mt-2 mb-0">Награда за уничтожение: <span class="text-warning fw-bold">+{{ boss.reward_coins }} <i class="bi bi-coin"></i></span></p>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert bg-dark border-success text-center p-5 rounded-4 mb-4 shadow">
+        <i class="bi bi-trophy-fill display-1 text-warning mb-3"></i>
+        <h2 class="text-white">Сектор зачищен!</h2>
+        <p class="text-muted">Врагов на горизонте нет. Отличная работа, командир!</p>
+    </div>
+    {% endif %}
+
+    <h4 class="text-white mb-3"><i class="bi bi-crosshair text-danger me-2"></i>Доступные снаряды</h4>
+
+    <div class="row g-3" id="tasksList">
+        {% for task in tasks %}
+        <div class="col-md-6 col-lg-4 task-item" id="task-{{ task.id }}">
+            <div class="card task-card border-0 rounded-4 shadow-sm h-100">
+                <div class="card-body d-flex justify-content-between align-items-center p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="fs-1 me-3">{{ task.icon }}</div>
+                        <div>
+                            <h5 class="text-white fw-bold mb-1">{{ task.title }}</h5>
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger rounded-pill">
+                                ⚔️ {{ task.damage }} урона
+                            </span>
+                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning rounded-pill ms-1">
+                                +{{ task.reward }} <i class="bi bi-coin"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-danger btn-lg rounded-circle attack-btn" data-id="{{ task.id }}" style="width: 60px; height: 60px;">
+                        <i class="bi bi-bullseye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert bg-dark border-secondary text-muted text-center rounded-4">
+                Боеприпасы закончились. Ждем подвоза новых задач!
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
-    async function toggleTask(checkbox, taskId) {
-        const card = document.getElementById(`card-${taskId}`);
-        const displayCoins = document.getElementById('display-coins');
-        const isCompleted = checkbox.checked;
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '{{ csrf_token }}';
 
-        try {
-            // Отправляем запрос в базу данных
-            const res = await fetch(`/api/child-tasks/${taskId}/toggle/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ completed: isCompleted })
-            });
-            const data = await res.json();
+    document.querySelectorAll('.attack-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const taskId = this.dataset.id;
+            const taskCard = document.getElementById(`task-${taskId}`);
 
-            if (data.status === 'ok') {
-                // Если сервер подтвердил, меняем визуал
-                if (isCompleted) {
-                    card.classList.add('completed');
-                } else {
-                    card.classList.remove('completed');
+            // Визуально отключаем кнопку, чтобы не кликнули дважды
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            try {
+                const response = await fetch(`/api/child-tasks/${taskId}/toggle/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ completed: true })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    // 1. Обновляем баланс монет
+                    document.getElementById('coinBalance').innerHTML = `${data.new_balance} <i class="bi bi-coin"></i>`;
+
+                    // 2. Убираем карточку задачи с экрана
+                    taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    taskCard.style.opacity = '0';
+                    taskCard.style.transform = 'scale(0.8)';
+                    setTimeout(() => taskCard.remove(), 300);
+
+                    // 3. Анимация попадания по боссу
+                    const bossArena = document.getElementById('bossArena');
+                    if (bossArena && data.damage_dealt > 0) {
+                        const bossImg = document.getElementById('bossImage');
+                        bossImg.classList.add('boss-hit');
+
+                        // Создаем вылетающий урон
+                        const damageEl = document.createElement('div');
+                        damageEl.className = 'damage-popup';
+                        damageEl.innerText = `-${data.damage_dealt}!`;
+
+                        // Центрируем урон на боссе
+                        const rect = bossImg.getBoundingClientRect();
+                        const arenaRect = bossArena.getBoundingClientRect();
+                        damageEl.style.left = `${rect.left - arenaRect.left + (rect.width/2) - 20}px`;
+                        damageEl.style.top = `${rect.top - arenaRect.top}px`;
+
+                        document.getElementById('bossImageContainer').appendChild(damageEl);
+
+                        setTimeout(() => {
+                            bossImg.classList.remove('boss-hit');
+                            damageEl.remove();
+                        }, 1000);
+
+                        // 4. Обновляем полоску HP
+                        const percent = (data.boss_hp / data.boss_max_hp) * 100;
+                        document.getElementById('bossHpBar').style.width = `${percent}%`;
+                        document.getElementById('bossHpText').innerText = `${data.boss_hp} / ${data.boss_max_hp} HP`;
+
+                        // 5. Если босс уничтожен
+                        if (data.boss_defeated) {
+                            setTimeout(() => {
+                                bossArena.innerHTML = `
+                                    <div class="card-body text-center p-5">
+                                        <i class="bi bi-fire display-1 text-danger mb-3"></i>
+                                        <h1 class="text-white fw-bold">БРОНЯ ПРОБИТА! ТАНК УНИЧТОЖЕН!</h1>
+                                        <h3 class="text-warning">+ Бонусные монеты получены!</h3>
+                                        <button class="btn btn-primary btn-lg mt-3" onclick="location.reload()">Вернуться в ангар</button>
+                                    </div>
+                                `;
+                            }, 1200);
+                        }
+                    }
                 }
-
-                // Ставим точный баланс монет из базы данных
-                displayCoins.innerText = data.new_balance;
-
-                // Красивая анимация увеличения
-                displayCoins.style.transform = "scale(1.4)";
-                displayCoins.style.color = "#fbbc04";
-                setTimeout(() => {
-                    displayCoins.style.transform = "scale(1)";
-                    displayCoins.style.color = "var(--text-main)";
-                }, 300);
-
-            } else {
-                alert("Ошибка: " + data.message);
-                checkbox.checked = !isCompleted; // Возвращаем чекбокс на место
+            } catch (error) {
+                console.error('Ошибка выстрела:', error);
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-bullseye"></i>';
             }
-        } catch (e) {
-            alert("Сетевая ошибка");
-            checkbox.checked = !isCompleted;
-        }
-    }
+        });
+    });
+});
 </script>
 {% endblock %}

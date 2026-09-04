@@ -6,25 +6,9 @@
 {% block extra_head %}
 <style>
     /* ================= СТИЛИ ТЕПЛОВОЙ КАРТЫ ================= */
-    .heatmap-container {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        overflow-x: auto;
-    }
-    .graph {
-        display: grid;
-        grid-template-rows: repeat(7, 12px);
-        grid-auto-flow: column;
-        gap: 3px;
-    }
-    .day {
-        width: 12px;
-        height: 12px;
-        background-color: #2d333b;
-        border-radius: 2px;
-        cursor: pointer;
-    }
+    .heatmap-container { display: flex; flex-direction: column; align-items: flex-end; overflow-x: auto; }
+    .graph { display: grid; grid-template-rows: repeat(7, 12px); grid-auto-flow: column; gap: 3px; }
+    .day { width: 12px; height: 12px; background-color: #2d333b; border-radius: 2px; cursor: pointer; }
     .day[data-level="0"] { background-color: #2d333b; }
     .day[data-level="1"] { background-color: #0e4429; }
     .day[data-level="2"] { background-color: #006d32; }
@@ -32,34 +16,12 @@
     .day[data-level="4"] { background-color: #39d353; }
 
     /* ================= ДАШБОРД СТИЛИ ================= */
-    .streak-card {
-        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
-        color: #333;
-        border: none;
-    }
+    .streak-card { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); color: #333; border: none; }
     .streak-number { font-size: 4rem; font-weight: 800; line-height: 1; }
-
-    .backdrop-blur {
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-    .card-module {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        background-color: #1e1e2f; /* Темный фон для модулей */
-    }
-    .card-module:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 1rem 3rem rgba(0,0,0,.3) !important;
-    }
-    .hover-accent {
-        transition: all 0.2s ease;
-        background-color: #2b2b40 !important; /* Темный фон для ссылок */
-        color: #fff !important;
-    }
-    .hover-accent:hover {
-        background-color: #3f3f5a !important;
-        transform: translateX(5px);
-    }
+    .card-module { transition: transform 0.3s ease, box-shadow 0.3s ease; background-color: #1e1e2f; }
+    .card-module:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.3) !important; }
+    .hover-accent { transition: all 0.2s ease; background-color: #2b2b40 !important; color: #fff !important; }
+    .hover-accent:hover { background-color: #3f3f5a !important; transform: translateX(5px); }
 </style>
 {% endblock %}
 
@@ -98,6 +60,78 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="text-white mb-0"><i class="bi bi-star-fill text-warning me-2"></i>Главные события</h4>
+        <div>
+            <button class="btn btn-sm btn-outline-info rounded-pill px-3 me-2" data-bs-toggle="modal" data-bs-target="#agendaModal">
+                <i class="bi bi-calendar-week"></i> Расписание
+            </button>
+            <button class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#createEventModal" onclick="document.getElementById('createEventForm').reset();">
+                <i class="bi bi-plus-lg"></i> Вне плана
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4 g-3">
+        {% for ev in hero_events %}
+        <div class="col-md-6 col-xl-4" id="planned-event-card-{{ ev.id }}">
+            <div class="card border-0 rounded-4 overflow-hidden position-relative shadow-sm h-100" style="min-height: 180px; background-color: #000;">
+
+                {% if ev.is_important %}
+                <span class="badge bg-danger position-absolute top-0 start-0 m-3 shadow" style="z-index: 10; font-size: 0.8rem;">
+                    <i class="bi bi-fire"></i> ВАЖНО
+                </span>
+                {% endif %}
+
+                <div class="position-absolute top-0 end-0 m-3 d-flex gap-2" style="z-index: 10;">
+                    <button type="button" class="btn btn-sm btn-outline-info border-0 edit-event-btn"
+                            style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);"
+                            data-id="{{ ev.id }}" data-title="{{ ev.title }}" data-desc="{{ ev.description|default:'' }}"
+                            data-date="{{ ev.event_date|date:'Y-m-d\TH:i' }}" data-important="{{ ev.is_important }}" title="Настроить">
+                        <i class="bi bi-pencil-fill text-white"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0"
+                            style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);"
+                            onclick="deletePlannedEvent({{ ev.id }})" title="Удалить">
+                        <i class="bi bi-trash3 text-white"></i>
+                    </button>
+                </div>
+
+                {% if ev.cover %}
+                    <img src="{{ ev.cover.url }}" alt="{{ ev.title }}" class="position-absolute w-100 h-100" style="object-fit: cover; opacity: 0.4; z-index: 0;">
+                {% else %}
+                    <div class="position-absolute w-100 h-100" style="background: linear-gradient(135deg, #1f005c, #5b0060, #870160, #ac255e, #ca485c); opacity: 0.6; z-index: 0;"></div>
+                {% endif %}
+
+                <div class="card-body position-relative d-flex flex-column justify-content-between p-4" style="z-index: 1;">
+                    <div class="mt-4 pt-2">
+                        <h4 class="text-white fw-bold mb-1" style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">{{ ev.title }}</h4>
+                        <span class="badge bg-white text-dark rounded-pill shadow-sm mt-1">
+                            <i class="bi bi-clock me-1"></i> {{ ev.event_date|date:"d M, H:i" }}
+                        </span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-end mt-3">
+                        <div class="text-warning fw-bold fs-5 countdown-timer" data-date="{{ ev.event_date|date:'c' }}" style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+                            Ожидание...
+                        </div>
+                        <button class="btn btn-sm btn-light rounded-pill px-3 preview-sound-btn"
+                                data-sound="{% if ev.sound_file %}{{ ev.sound_file.url }}{% else %}https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg{% endif %}" title="Слушать">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert bg-dark border-secondary text-muted rounded-4">
+                Нет активных важных событий. Нажмите "Вне плана", чтобы добавить.
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
     <div class="row g-4 mb-5">
@@ -199,13 +233,12 @@
                                     <i class="bi bi-film fs-1 text-muted"></i>
                                 </div>
                             {% endif %}
-                            <a href="{% if item.video.video_type == 'MOVIE' %}{% url 'movie_detail' item.video.pk %}{% elif item.video.course and item.video.course.slug %}{% url 'course_detail' item.video.course.slug %}{% else %}#{% endif %}"
-                               class="stretched-link d-flex align-items-center justify-content-center">
+                            <a href="{% if item.video.video_type == 'MOVIE' %}{% url 'movie_detail' item.video.pk %}{% elif item.video.course %}{% url 'course_detail' item.video.course.slug %}{% else %}#{% endif %}" class="stretched-link d-flex align-items-center justify-content-center">
                                 <i class="bi bi-play-fill display-4 text-white opacity-75"></i>
                             </a>
                         </div>
                         <div class="card-body p-3">
-                            <h6 class="card-title text-truncate text-white mb-1" title="{{ item.video.title }}">{{ item.video.title }}</h6>
+                            <h6 class="card-title text-truncate text-white mb-1">{{ item.video.title }}</h6>
                             <p class="text-muted small mb-2">{% if item.video.course %}{{ item.video.course.title }}{% else %}Фильм{% endif %}</p>
                             <div class="progress" style="height: 4px; background-color: #444;">
                                 <div class="progress-bar bg-danger" style="width: {{ item.progress }}%"></div>
@@ -244,9 +277,7 @@
                 </div>
                 {% empty %}
                 <div class="col-12">
-                    <div class="alert bg-dark border-secondary text-muted rounded-4 text-center p-4">
-                        Нет активных планов обучения. Зайдите в любой курс и нажмите "Спланировать".
-                    </div>
+                    <div class="alert bg-dark border-secondary text-muted rounded-4 text-center p-4">Нет активных планов обучения.</div>
                 </div>
                 {% endfor %}
             </div>
@@ -276,11 +307,7 @@
                     <div class="heatmap-container">
                         <div class="graph" id="heatmap-graph"></div>
                         <div class="d-flex justify-content-end w-100 mt-2 gap-1 small text-muted">
-                            <span>Меньше</span>
-                            <div class="day" data-level="0"></div>
-                            <div class="day" data-level="2"></div>
-                            <div class="day" data-level="4"></div>
-                            <span>Больше</span>
+                            <span>Меньше</span><div class="day" data-level="0"></div><div class="day" data-level="2"></div><div class="day" data-level="4"></div><span>Больше</span>
                         </div>
                     </div>
                 </div>
@@ -294,17 +321,11 @@
                     <ul class="list-group list-group-flush border-0">
                         {% for stat in monthly_stats %}
                         <li class="list-group-item bg-transparent text-white border-secondary px-4 py-3 d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="bi {{ stat.event_type__icon }} me-2" style="color: {{ stat.event_type__color }};"></i>
-                                {{ stat.event_type__name }}
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-secondary rounded-pill fs-6 mb-1">{{ stat.total_value }}</span><br>
-                                <small class="text-muted" style="font-size: 0.7rem;">Записей: {{ stat.count }}</small>
-                            </div>
+                            <div><i class="bi {{ stat.event_type__icon }} me-2" style="color: {{ stat.event_type__color }};"></i>{{ stat.event_type__name }}</div>
+                            <div class="text-end"><span class="badge bg-secondary rounded-pill fs-6 mb-1">{{ stat.total_value }}</span><br><small class="text-muted" style="font-size: 0.7rem;">Записей: {{ stat.count }}</small></div>
                         </li>
                         {% empty %}
-                        <li class="list-group-item bg-transparent text-muted px-4">Нет данных в этом месяце.</li>
+                        <li class="list-group-item bg-transparent text-muted px-4">Нет данных.</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -314,9 +335,7 @@
         <div class="col-md-8">
             <div class="card h-100 bg-dark border-secondary text-white shadow rounded-4">
                 <div class="card-header border-secondary px-4 py-3 fw-bold">Динамика событий (14 дней)</div>
-                <div class="card-body p-4">
-                    <canvas id="trackerChart" height="100"></canvas>
-                </div>
+                <div class="card-body p-4"><canvas id="trackerChart" height="100"></canvas></div>
             </div>
         </div>
     </div>
@@ -326,13 +345,8 @@
             <div class="card border-0 shadow-sm rounded-4" style="background-color: #2b2b40;">
                 <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center">
-                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                            <i class="bi bi-terminal-fill fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1 fw-bold text-white">Инструменты администратора</h6>
-                            <p class="text-muted small mb-0">Управление контентом, логирование и очистка мусора.</p>
-                        </div>
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-terminal-fill fs-4"></i></div>
+                        <div><h6 class="mb-1 fw-bold text-white">Инструменты администратора</h6><p class="text-muted small mb-0">Управление контентом, логирование и очистка мусора.</p></div>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
                         <a href="{% url 'upload_video' %}" class="btn btn-outline-primary rounded-pill btn-sm px-3"><i class="bi bi-upload me-1"></i> Загрузить</a>
@@ -346,131 +360,441 @@
     </div>
 
 </div>
+
+<div class="modal fade" id="agendaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-calendar-week text-warning me-2"></i>Расписание на неделю</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="list-group list-group-flush rounded-bottom-4">
+                    {% for day in agenda %}
+                    <div class="list-group-item bg-transparent text-white border-secondary p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 fw-bold {% if day.is_today %}text-warning{% elif day.is_tomorrow %}text-info{% else %}text-light{% endif %}">
+                                {% if day.is_today %}Сегодня, {% elif day.is_tomorrow %}Завтра, {% endif %}
+                                {{ day.date|date:"d M"|lower }} <span class="text-uppercase ms-1" style="font-size: 0.7rem; opacity: 0.8;">{{ day.date|date:"D" }}</span>
+                            </h6>
+                            <button class="btn btn-sm btn-outline-secondary rounded-circle add-event-to-day-btn" data-date="{{ day.date|date:'Y-m-d' }}" title="Добавить план">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+
+                        {% for ev in day.events %}
+                        <div class="d-flex justify-content-between align-items-center bg-black bg-opacity-25 rounded-3 p-2 mb-2" id="planned-event-item-{{ ev.id }}">
+                            <div class="d-flex flex-column flex-grow-1">
+                                <div class="d-flex align-items-center">
+                                    {% if ev.is_important %}<i class="bi bi-fire text-danger me-2" title="Важное"></i>{% endif %}
+                                    <span class="badge {% if ev.is_notified %}bg-success{% else %}bg-secondary{% endif %} me-3">{{ ev.event_date|date:"H:i" }}</span>
+                                    <span class="{% if ev.is_notified %}text-muted text-decoration-line-through{% else %}text-white{% endif %}">{{ ev.title }}</span>
+                                </div>
+                                {% if ev.description %}
+                                <div class="text-light mt-1 ms-5 ps-2" style="font-size: 0.85rem; opacity: 0.9;">{{ ev.description|truncatechars:100 }}</div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-link text-info p-0 me-3 edit-event-btn" data-id="{{ ev.id }}" data-title="{{ ev.title }}" data-desc="{{ ev.description|default:'' }}" data-date="{{ ev.event_date|date:'Y-m-d\TH:i' }}" data-important="{{ ev.is_important }}"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-link text-danger p-0" onclick="deletePlannedEvent({{ ev.id }})"><i class="bi bi-x-circle"></i></button>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-light small ps-2 opacity-75 fst-italic">Окно свободно</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="createEventModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-calendar-plus text-warning me-2"></i>Новое событие</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createEventForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Что должно произойти? *</label>
+                        <input type="text" name="title" class="form-control bg-secondary text-white border-0" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Описание / Заметка</label>
+                        <textarea name="description" class="form-control bg-secondary text-white border-0" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Дата и время *</label>
+                        <input type="datetime-local" name="event_date" class="form-control bg-secondary text-white border-0" required>
+                    </div>
+                    <div class="mb-4 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="is_important" id="createIsImportant">
+                        <label class="form-check-label text-white fw-bold ms-2" for="createIsImportant">🔥 Отметить как "Супер важное"</label>
+                        <div class="form-text text-muted small">Важные события показываются крупными карточками на главном экране.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Обложка карточки (картинка)</label>
+                        <input type="file" name="cover" class="form-control bg-secondary text-white border-0" accept="image/*">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Мелодия будильника (MP3/WAV)</label>
+                        <input type="file" name="sound_file" class="form-control bg-secondary text-white border-0" accept="audio/*">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold px-4">Запланировать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editEventModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-pencil-square text-info me-2"></i>Настройка события</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editEventForm" enctype="multipart/form-data">
+                <input type="hidden" name="event_id" id="editEventId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Что должно произойти? *</label>
+                        <input type="text" name="title" id="editEventTitle" class="form-control bg-secondary text-white border-0" required autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Описание / Заметка</label>
+                        <textarea name="description" id="editEventDesc" class="form-control bg-secondary text-white border-0" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Дата и время *</label>
+                        <input type="datetime-local" name="event_date" id="editEventDate" class="form-control bg-secondary text-white border-0" required>
+                    </div>
+                    <div class="mb-4 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="is_important" id="editIsImportant">
+                        <label class="form-check-label text-white fw-bold ms-2" for="editIsImportant">🔥 Отметить как "Супер важное"</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Новая обложка (опционально)</label>
+                        <input type="file" name="cover" class="form-control bg-secondary text-white border-0" accept="image/*">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Новая мелодия (опционально)</label>
+                        <input type="file" name="sound_file" class="form-control bg-secondary text-white border-0" accept="audio/*">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-info text-dark fw-bold px-4">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="eventAlarmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-warning shadow-lg" style="border-width: 2px;">
+            <div class="modal-body text-center p-5">
+                <i class="bi bi-bell-fill text-warning display-1 mb-3 animate-ring"></i>
+                <h2 class="text-white fw-bold mb-3" id="alarmModalTitle">Событие наступило!</h2>
+                <button type="button" class="btn btn-warning btn-lg px-5 rounded-pill fw-bold" id="stopAlarmBtn">
+                    ПОНЯТНО, ОТКЛЮЧИТЬ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-10deg); } 30% { transform: rotate(5deg); } 40% { transform: rotate(-5deg); } 50% { transform: rotate(0); } 100% { transform: rotate(0); } }
+    .animate-ring { display: inline-block; animation: ring 2s ease infinite; }
+</style>
+
 {% endblock %}
 
 {% block extra_scripts %}
+<audio id="eventAudioPlayer" preload="auto"></audio>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // === 1. ГЕНЕРАЦИЯ ТЕПЛОВОЙ КАРТЫ (HEATMAP) ===
-    const graph = document.getElementById('heatmap-graph');
-    const activityMap = JSON.parse('{{ activity_map|escapejs }}');
-    const today = new Date();
-    const startDate = new Date();
-    startDate.setDate(today.getDate() - 364);
-
-    for (let i = 0; i <= 364; i++) {
-        const d = new Date(startDate);
-        d.setDate(startDate.getDate() + i);
-
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-
-        const count = activityMap[dateStr] || 0;
-
-        let level = 0;
-        if (count > 0) level = 1;
-        if (count >= 2) level = 2;
-        if (count >= 4) level = 3;
-        if (count >= 6) level = 4;
-
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'day';
-        dayDiv.setAttribute('data-level', level);
-        dayDiv.setAttribute('data-bs-toggle', 'tooltip');
-        dayDiv.setAttribute('data-bs-title', `${dateStr}: ${count} задач`);
-        graph.appendChild(dayDiv);
-    }
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(t => new bootstrap.Tooltip(t));
-
-
-    // === 2. ГОЛОСОВОЙ АССИСТЕНТ JARVIS ===
-    const username = "{{ user.first_name|default:user.username }}";
-
-    function speakJarvis() {
-        const now = new Date();
-        const hour = now.getHours();
-        let greeting = "";
-
-        if (hour >= 5 && hour < 12) greeting = "Доброе утро";
-        else if (hour >= 12 && hour < 17) greeting = "Добрый день";
-        else if (hour >= 17 && hour < 23) greeting = "Добрый вечер";
-        else greeting = "Доброй ночи";
-
-        const text = `${greeting}, ${username}. Системы в норме. Готов к работе.`;
-        const synth = window.speechSynthesis;
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        utterance.lang = 'ru-RU';
-        utterance.rate = 1.0;
-        utterance.pitch = 0.9;
-        synth.speak(utterance);
-    }
-
-    // Привязываем голос к кнопке в шапке
-    const voiceBtn = document.getElementById('jarvisVoiceBtn');
-    if (voiceBtn) {
-        voiceBtn.addEventListener('click', speakJarvis);
-    }
-
-    // === 3. ГРАФИК CHART.JS ===
-    const trackerDataStr = '{{ tracker_data_json|escapejs }}';
-    if(trackerDataStr && trackerDataStr !== '{}') {
-        const trackerData = JSON.parse(trackerDataStr);
-        const trackerCtx = document.getElementById('trackerChart');
-
-        if (trackerCtx) {
-            const labels = [];
-            const dateObj = new Date();
-            for (let i = 13; i >= 0; i--) {
-                const d = new Date(dateObj);
-                d.setDate(d.getDate() - i);
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                labels.push(`${year}-${month}-${day}`);
-            }
-
-            const datasets = [];
-            for (const [eventName, info] of Object.entries(trackerData)) {
-                const dataPoints = labels.map(date => info.data[date] || 0);
-                datasets.push({
-                    label: eventName,
-                    data: dataPoints,
-                    borderColor: info.color,
-                    backgroundColor: info.color + '33',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true
-                });
-            }
-
-            new Chart(trackerCtx, {
-                type: 'line',
-                data: { labels: labels, datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { color: '#adb5bd', stepSize: 1 }, grid: { color: '#343a40' } },
-                        x: { ticks: { color: '#adb5bd', maxRotation: 45, minRotation: 45 }, grid: { color: '#343a40' } }
-                    },
-                    plugins: { legend: { labels: { color: '#f8f9fa' } } }
-                }
-            });
-        }
-    }
-});
-
-// === 4. ОЧИСТКА МУСОРА ===
-function confirmCleanup() {
+window.confirmCleanup = function() {
     if(confirm("Джарвис удалит файлы, помеченные как 'Просмотрено'. Вы уверены?")) {
         fetch('/api/cleanup/', { method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'} })
         .then(r => r.json())
-        .then(data => alert("Очистка завершена! Удалено: " + data.count + " файлов."));
+        .then(data => alert("Очистка завершена! Удалено: " + data.count + " файлов."))
+        .catch(err => alert("Ошибка при очистке (API не настроен или сбой)."));
     }
-}
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = '{{ csrf_token }}';
+    const audioPlayer = document.getElementById('eventAudioPlayer');
+
+    document.body.addEventListener('click', function unlockAudio() {
+        audioPlayer.play().then(() => { audioPlayer.pause(); }).catch(() => {});
+        document.body.removeEventListener('click', unlockAudio);
+    }, { once: true });
+
+    // === ТАЙМЕРЫ ===
+    const eventsDataStr = '{{ events_json|escapejs|default:"[]" }}';
+    let eventsData = [];
+    if (eventsDataStr) { try { eventsData = JSON.parse(eventsDataStr); } catch (e) { console.error("Ошибка парсинга:", e); } }
+
+    const alarmModalEl = document.getElementById('eventAlarmModal');
+    let alarmModal = null;
+    if (alarmModalEl) alarmModal = new bootstrap.Modal(alarmModalEl);
+    let activeAlarmId = null;
+
+    function updateCountdowns() {
+        const now = new Date().getTime();
+        document.querySelectorAll('.countdown-timer').forEach(timerEl => {
+            const eventDate = new Date(timerEl.dataset.date).getTime();
+            const distance = eventDate - now;
+
+            if (distance > 0) {
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                let text = "";
+                if (days > 0) text += days + "д ";
+                text += `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                timerEl.innerText = text;
+            } else if (timerEl.innerText !== "НАЧАЛОСЬ!") {
+                timerEl.innerText = "НАЧАЛОСЬ!";
+                timerEl.classList.add('text-danger', 'animate-pulse');
+
+                const currentEventUrlDate = timerEl.dataset.date;
+                const eventObj = eventsData.find(e => e.date_iso === currentEventUrlDate);
+                if (eventObj) triggerAlarm(eventObj);
+            }
+        });
+    }
+
+    function triggerAlarm(eventObj) {
+        if (!alarmModal) return;
+        document.getElementById('alarmModalTitle').innerText = eventObj.title;
+        activeAlarmId = eventObj.id;
+        if (eventObj.sound_url) { audioPlayer.src = eventObj.sound_url; audioPlayer.loop = true; audioPlayer.play().catch(()=>{}); }
+        alarmModal.show();
+        const index = eventsData.findIndex(e => e.id === eventObj.id);
+        if (index > -1) eventsData.splice(index, 1);
+    }
+
+    const stopAlarmBtn = document.getElementById('stopAlarmBtn');
+    if (stopAlarmBtn) {
+        stopAlarmBtn.addEventListener('click', function() {
+            audioPlayer.pause(); audioPlayer.currentTime = 0;
+            if (alarmModal) alarmModal.hide();
+            if (activeAlarmId) {
+                fetch(`/api/events/notified/${activeAlarmId}/`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } });
+                activeAlarmId = null;
+            }
+        });
+    }
+
+    if (document.querySelectorAll('.countdown-timer').length > 0) {
+        setInterval(updateCountdowns, 1000);
+        updateCountdowns();
+    }
+
+    // УДАЛЕНИЕ СОБЫТИЯ
+    window.deletePlannedEvent = async function(eventId) {
+        if (confirm('Вы уверены, что хотите удалить это событие?')) {
+            try {
+                const response = await fetch(`/api/events/${eventId}/delete/`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } });
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    const heroCard = document.getElementById(`planned-event-card-${eventId}`);
+                    if (heroCard) { heroCard.style.opacity = '0'; setTimeout(() => heroCard.remove(), 300); }
+                    const listItem = document.getElementById(`planned-event-item-${eventId}`);
+                    if (listItem) { listItem.style.opacity = '0'; setTimeout(() => listItem.remove(), 300); }
+                    const index = eventsData.findIndex(e => e.id === eventId);
+                    if (index > -1) eventsData.splice(index, 1);
+                } else { alert('Ошибка при удалении: ' + data.message); }
+            } catch (err) { alert('Сетевая ошибка при удалении.'); }
+        }
+    };
+
+    // ДОБАВЛЕНИЕ ПЛАНА ЧЕРЕЗ АГЕНДУ
+    document.querySelectorAll('.add-event-to-day-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const defaultTime = this.dataset.date + "T12:00";
+            document.getElementById('createEventForm').reset();
+            document.querySelector('#createEventModal input[name="event_date"]').value = defaultTime;
+
+            const agendaModalEl = document.getElementById('agendaModal');
+            if (agendaModalEl) {
+               const agendaModal = bootstrap.Modal.getInstance(agendaModalEl);
+               if(agendaModal) agendaModal.hide();
+            }
+            new bootstrap.Modal(document.getElementById('createEventModal')).show();
+        });
+    });
+
+    // === ТЕПЛОВАЯ КАРТА ===
+    const graph = document.getElementById('heatmap-graph');
+    if (graph) {
+        const activityMapStr = '{{ activity_map|escapejs|default:"{}" }}';
+        let activityMap = {};
+        try { activityMap = JSON.parse(activityMapStr); } catch(e){}
+        const todayDate = new Date(); const startDate = new Date(); startDate.setDate(todayDate.getDate() - 364);
+        for (let i = 0; i <= 364; i++) {
+            const d = new Date(startDate); d.setDate(startDate.getDate() + i);
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const count = activityMap[dateStr] || 0;
+            let level = count >= 6 ? 4 : count >= 4 ? 3 : count >= 2 ? 2 : count > 0 ? 1 : 0;
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day'; dayDiv.setAttribute('data-level', level); dayDiv.setAttribute('data-bs-toggle', 'tooltip'); dayDiv.setAttribute('data-bs-title', `${dateStr}: ${count} задач`);
+            graph.appendChild(dayDiv);
+        }
+        [...document.querySelectorAll('[data-bs-toggle="tooltip"]')].map(t => new bootstrap.Tooltip(t));
+    }
+
+    // === ГОЛОСОВОЙ АССИСТЕНТ ===
+    const voiceBtn = document.getElementById('jarvisVoiceBtn');
+    if (voiceBtn) {
+        voiceBtn.addEventListener('click', () => {
+            const hour = new Date().getHours();
+            let greetingStr = hour >= 5 && hour < 12 ? "Доброе утро" : hour >= 12 && hour < 17 ? "Добрый день" : hour >= 17 && hour < 23 ? "Добрый вечер" : "Доброй ночи";
+            const utterance = new SpeechSynthesisUtterance(`${greetingStr}, {{ user.first_name|default:user.username }}. Системы в норме. Готов к работе.`);
+            utterance.lang = 'ru-RU'; window.speechSynthesis.speak(utterance);
+        });
+    }
+
+    // === CHART.JS ===
+    const trackerCtx = document.getElementById('trackerChart');
+    if (trackerCtx) {
+        const trackerDataStr = '{{ tracker_data_json|escapejs|default:"{}" }}';
+        let trackerData = {};
+        try { trackerData = JSON.parse(trackerDataStr); } catch(e){}
+        if (Object.keys(trackerData).length > 0) {
+            const labels = []; const dateObj = new Date();
+            for (let i = 13; i >= 0; i--) {
+                const d = new Date(dateObj); d.setDate(d.getDate() - i);
+                labels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+            }
+            const datasets = [];
+            for (const [eventName, info] of Object.entries(trackerData)) {
+                datasets.push({ label: eventName, data: labels.map(date => info.data[date] || 0), borderColor: info.color, backgroundColor: info.color + '33', borderWidth: 2, tension: 0.3, fill: true });
+            }
+            new Chart(trackerCtx, { type: 'line', data: { labels: labels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#adb5bd', stepSize: 1 }, grid: { color: '#343a40' } }, x: { ticks: { color: '#adb5bd', maxRotation: 45, minRotation: 45 }, grid: { color: '#343a40' } } }, plugins: { legend: { labels: { color: '#f8f9fa' } } } } });
+        }
+    }
+
+    // === РЕДАКТИРОВАНИЕ СОБЫТИЯ ===
+    const editModalEl = document.getElementById('editEventModal');
+    let editModal = null;
+    if (editModalEl) editModal = new bootstrap.Modal(editModalEl);
+
+    document.querySelectorAll('.edit-event-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('editEventId').value = this.dataset.id;
+            document.getElementById('editEventTitle').value = this.dataset.title;
+            document.getElementById('editEventDesc').value = this.dataset.desc;
+            document.getElementById('editEventDate').value = this.dataset.date;
+
+            // Читаем чекбокс важности
+            document.getElementById('editIsImportant').checked = (this.dataset.important === 'True' || this.dataset.important === 'true');
+
+            // Если мы нажали редактировать из окна Агенды, скроем её, чтобы окна не накладывались
+            const agendaModalEl = document.getElementById('agendaModal');
+            if (agendaModalEl) {
+               const agendaModal = bootstrap.Modal.getInstance(agendaModalEl);
+               if(agendaModal) agendaModal.hide();
+            }
+
+            if (editModal) editModal.show();
+        });
+    });
+
+    const editEventForm = document.getElementById('editEventForm');
+    if (editEventForm) {
+        editEventForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const eventId = document.getElementById('editEventId').value;
+            submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
+
+            try {
+                const response = await fetch(`/api/events/${eventId}/edit/`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: new FormData(this) });
+                const data = await response.json();
+                if (data.status === 'ok') location.reload();
+                else { alert("Ошибка: " + data.message); submitBtn.disabled = false; submitBtn.innerText = 'Сохранить'; }
+            } catch (err) { alert("Сетевая ошибка при сохранении."); submitBtn.disabled = false; submitBtn.innerText = 'Сохранить'; }
+        });
+    }
+
+    // === ПРЕДПРОСЛУШИВАНИЕ МЕЛОДИЙ ===
+    let currentPreviewAudio = null;
+    document.querySelectorAll('.preview-sound-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const soundUrl = this.dataset.sound; const icon = this.querySelector('i');
+            if (currentPreviewAudio && !currentPreviewAudio.paused && currentPreviewAudio.src.includes(soundUrl)) {
+                currentPreviewAudio.pause(); icon.classList.replace('bi-stop-fill', 'bi-play-fill'); return;
+            }
+            if (currentPreviewAudio) {
+                currentPreviewAudio.pause(); document.querySelectorAll('.preview-sound-btn i').forEach(i => i.classList.replace('bi-stop-fill', 'bi-play-fill'));
+            }
+            currentPreviewAudio = new Audio(soundUrl);
+            currentPreviewAudio.play().then(() => { icon.classList.replace('bi-play-fill', 'bi-stop-fill'); }).catch(e => {
+                alert("Джарвис: Не удалось загрузить мелодию."); icon.classList.replace('bi-stop-fill', 'bi-play-fill');
+            });
+            currentPreviewAudio.onended = () => icon.classList.replace('bi-stop-fill', 'bi-play-fill');
+        });
+    });
+
+});
+// === ДОБАВЛЕНИЕ НОВОГО СОБЫТИЯ (ИСПРАВЛЕНИЕ) ===
+    const createEventForm = document.getElementById('createEventForm');
+    if (createEventForm) {
+        createEventForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
+
+            // 👇 Прямо здесь даем скрипту токен безопасности Django 👇
+            const safeCsrfToken = '{{ csrf_token }}';
+
+            try {
+                const response = await fetch("/api/events/create/", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': safeCsrfToken },
+                    body: new FormData(this)
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    alert("Джарвис: Критическая ошибка сервера!\n\n" + text.substring(0, 150));
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Запланировать';
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    location.reload();
+                } else {
+                    alert("Внимание: " + data.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Запланировать';
+                }
+            } catch (err) {
+                alert("Ошибка сети или скрипта: " + err.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Запланировать';
+            }
+        });
+    }
+
 </script>
 {% endblock %}

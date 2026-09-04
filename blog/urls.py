@@ -104,6 +104,7 @@ urlpatterns = [
     # =========================================================================
     # Аутентификация
     path('api/face-login/', views.face_login_api, name='face_login_api'),
+    path('api/omni-search/', views.omni_search_api, name='omni_search_api'),
 
     # Видео, плеер и прогресс
     path('api/notes/add/', views.add_note, name='add_note'),
@@ -112,6 +113,8 @@ urlpatterns = [
     path('api/videos/<int:pk>/schedule/', views.schedule_video_view, name='schedule_video_api'),
     path('api/video/<int:pk>/toggle-list/', views.toggle_video_list, name='toggle_video_list'),
     path('api/track_progress/', views.track_video_progress, name='track_video_progress'),
+    path('api/stream/hls/<int:video_id>/<int:audio_idx>/index.m3u8', views.start_hls_stream, name='start_hls_stream'),
+    path('api/stream/hls/<int:video_id>/<int:audio_idx>/<str:segment_name>', views.serve_hls_segment, name='serve_hls_segment'),
 
     # Управление тегами через API
     path('api/videos/<int:video_pk>/tags/add/', views.add_tag_to_movie_api, name='add_tag_to_movie_api'),
@@ -137,12 +140,18 @@ urlpatterns = [
     path('api/tracker/category/<int:pk>/delete/', views.delete_event_type, name='delete_event_type'),
     path('api/tracker/event/<int:pk>/delete/', views.delete_tracker_event_api, name='delete_tracker_event'),
     path('api/tracker/toggle/<int:type_id>/', views.toggle_habit_checkbox_api, name='toggle_habit_checkbox'),
+    path('api/events/notified/<int:event_id>/', views.mark_event_notified_api, name='mark_event_notified_api'),
+    path('api/events/create/', views.create_event_api, name='create_event_api'),
+    path('api/events/<int:event_id>/delete/', views.delete_planned_event_api, name='delete_planned_event_api'),
+    path('api/events/<int:event_id>/edit/', views.edit_planned_event_api, name='edit_planned_event_api'),
 
     # Модуль обучения и планирования
     path('api/course/<slug:course_slug>/plan/', views.create_study_plan_api, name='create_study_plan_api'),
     path('api/course/<int:course_id>/delete/', views.delete_course_api, name='delete_course_api'),
     path('api/course/<int:course_id>/move/', views.move_course_api, name='move_course_api'),
     path('api/learning/progress/<int:file_id>/', views.update_course_progress_api, name='update_course_progress_api'),
+    path('api/course/manual-create/', views.create_course_manual_api, name='create_course_manual_api'),
+    path('api/course/<int:course_id>/update-html/', views.update_course_html_api, name='update_course_html_api'),
 
     # Проводник (File Explorer Actions)
     path('api/explorer/telegram/', views.explorer_send_telegram, name='explorer_send_telegram'),

@@ -29,7 +29,9 @@ import telebot
 import logging
 # Создаем логгер, который будет писать в консоль и файл
 logger = logging.getLogger(__name__)
-
+from datetime import datetime
+from django.conf import settings
+from celery import shared_task
 
 # --- ЗАДАЧА 1: ОТПРАВКА УВЕДОМЛЕНИЙ В TELEGRAM ---
 @shared_task
@@ -217,61 +219,108 @@ def fetch_tmdb_metadata(video_id):
 # ЗАДАЧА 1: ОСНОВНАЯ ОБРАБОТКА ВИДЕОФАЙЛА
 # ===============================================
 # Добавляем параметры надежности
-@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 2}, retry_backoff=180)
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 2}, retry_backoff=60)
 def process_video_task(self, video_id):
+    """
+    Новое стриминговое ядро V2 (Фаза 1).
+    Мгновенный анализ файла без создания MP4-копий.
+    Извлекает длительность, аудиодорожки и субтитры.
+    """
+    logger.info(f"Начало мгновенного анализа видео ID: {video_id}")
     try:
         video = Video.objects.get(id=video_id)
     except Video.DoesNotExist:
         return
 
     def log(msg):
-        print(f"🎬 [{video.title}] {msg}")
+        print(f"[{video.title}] {msg}")
         ProcessingLog.objects.create(video=video, message=msg)
 
-    # 1. Сбрасываем статус на "В процессе"
+    if video.status == Video.StatusChoices.READY:
+        log("Видео уже готово. Пропуск.")
+        return
+
+    log("Начало сканирования файла (FFprobe)...")
     video.status = Video.StatusChoices.PROCESSING
     video.save(update_fields=['status'])
-    log("🚀 Старт обработки (FFmpeg)...")
+
+    source_path_str = str(video.movie_path)
 
     try:
-        source_path = str(video.movie_path)
+        # Этап 1: Глубокий анализ файла (ffprobe)
+        ffprobe_cmd = [
+            'ffprobe', '-v', 'quiet', '-print_format', 'json',
+            '-show_format', '-show_streams', source_path_str
+        ]
+        result = subprocess.run(ffprobe_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
+        metadata = json.loads(result.stdout)
 
-        # 2. Анализ длительности
-        ffprobe_cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', source_path]
-        res = subprocess.run(ffprobe_cmd, check=True, capture_output=True, text=True)
-        meta = json.loads(res.stdout)
-        duration = int(float(meta.get('format', {}).get('duration', 0)))
+        # Забираем длительность
+        duration = int(float(metadata.get('format', {}).get('duration', 0)))
         video.duration = duration
 
-        # 3. Конвертация
-        web_dir = Path(settings.MEDIA_ROOT) / 'movies_web'
-        web_dir.mkdir(parents=True, exist_ok=True)
+        # Этап 2: Извлечение всех аудиодорожек и субтитров (как в Plex)
+        audio_tracks = []
+        sub_tracks = []
 
-        out_name = f"{slugify(video.title)}_{video.pk}.mp4"
-        out_path = web_dir / out_name
+        for stream in metadata.get('streams', []):
+            codec_type = stream.get('codec_type')
+            tags = stream.get('tags', {})
 
-        # Команда конвертации
-        cmd = [
-            'ffmpeg', '-y', '-i', source_path,
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-            '-c:a', 'aac', '-b:a', '128k',
-            '-movflags', '+faststart', str(out_path)
-        ]
-        subprocess.run(cmd, check=True)
+            if codec_type == 'audio':
+                audio_tracks.append({
+                    'index': stream.get('index'),
+                    'codec': stream.get('codec_name', 'unknown'),
+                    'language': tags.get('language', 'und'),
+                    'title': tags.get('title', f"Аудио {len(audio_tracks) + 1}"),
+                    'channels': stream.get('channels', 2)
+                })
+            elif codec_type == 'subtitle':
+                # Игнорируем картинки-субтитры (PGS), берем только текст (SubRip, ASS, VTT) если нужно,
+                # но пока соберем все, чтобы знать, что они есть.
+                sub_tracks.append({
+                    'index': stream.get('index'),
+                    'codec': stream.get('codec_name', 'unknown'),
+                    'language': tags.get('language', 'und'),
+                    'title': tags.get('title', f"Субтитры {len(sub_tracks) + 1}")
+                })
 
-        video.web_player_path.name = f"movies_web/{out_name}"
+        video.audio_tracks = audio_tracks
+        video.subtitle_tracks = sub_tracks
+        log(f"Найдено: Аудио - {len(audio_tracks)} шт, Субтитров - {len(sub_tracks)} шт.")
 
-        # 4. Обложка
-        cover = generate_cover_image(str(out_path), video.pk)
-        if cover:
-            video.cover.save(f"cover_{video.pk}.jpg", cover, save=False)
+        # Этап 3: Техническая обложка (генерируем заглушку или достаем из метаданных)
+        log("Создание технической обложки...")
+        cover_content_or_path = generate_cover_image(str(source_path_str), video.pk)
 
-        video.status = Video.StatusChoices.READY
-        video.save()
-        log("✅ Готово!")
+        if cover_content_or_path:
+            cover_filename = f"cover_{video.pk}.jpg"
+            if isinstance(cover_content_or_path, ContentFile):
+                video.cover.save(cover_filename, cover_content_or_path, save=False)
+            else:
+                full_cover_path = os.path.join(settings.MEDIA_ROOT, cover_content_or_path)
+                with open(full_cover_path, 'rb') as f:
+                    video.cover.save(cover_filename, File(f), save=False)
+
+        # Сохраняем новые данные в БД (заметь, web_player_path мы больше не используем!)
+        video.save(update_fields=['duration', 'audio_tracks', 'subtitle_tracks', 'cover'])
+
+        # Этап 4: Загрузка красивых данных с TMDb (если это фильм)
+        if video.video_type == Video.VideoType.MOVIE:
+            log("Запуск поиска информации на TMDb...")
+            # Передаем эстафету следующей задаче
+            fetch_tmdb_metadata.delay(video.pk)
+        else:
+            # Если это урок, просто завершаем работу
+            video.status = Video.StatusChoices.READY
+            video.save(update_fields=['status'])
+            log("✅ Видео готово к стримингу!")
 
     except Exception as e:
-        log(f"💥 Ошибка: {e}")
+        import traceback
+        error_msg = f"КРИТИЧЕСКАЯ ОШИБКА: {str(e)}"
+        print(traceback.format_exc())
+        log(error_msg)
         video.status = Video.StatusChoices.ERROR
         video.save(update_fields=['status'])
 
@@ -535,3 +584,56 @@ def send_daily_report():
 
     bot = telebot.TeleBot(settings.TELEGRAM_BOT_TOKEN)
     bot.send_message(settings.TELEGRAM_CHAT_ID, msg, parse_mode='HTML')
+
+
+@shared_task
+def backup_database_to_telegram():
+    """Создает ZIP-архив базы данных и отправляет в Telegram."""
+    import os
+    import zipfile
+    import requests
+    import tempfile
+    from datetime import datetime
+    from django.conf import settings
+
+    db_path = str(settings.DATABASES['default']['NAME'])
+
+    if not os.path.exists(db_path):
+        return f"Файл БД не найден по пути: {db_path}. Бэкап отменен."
+
+    date_str = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    zip_filename = f"jarvis_backup_{date_str}.zip"
+    zip_filepath = os.path.join(tempfile.gettempdir(), zip_filename)
+
+    try:
+        # 1. Сжимаем базу данных в ZIP
+        with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(db_path, arcname='db.sqlite3')
+
+        # 2. Отправляем документ в Telegram
+        url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendDocument"
+        caption = f"🛡️ JARVIS: Автоматический бэкап базы данных за {date_str}"
+
+        with open(zip_filepath, 'rb') as doc:
+            response = requests.post(
+                url,
+                data={'chat_id': settings.TELEGRAM_CHAT_ID, 'caption': caption},
+                files={'document': doc}
+            )
+            response.raise_for_status()
+
+        result_msg = "Бэкап успешно отправлен."
+
+    except Exception as e:
+        result_msg = f"Ошибка при создании бэкапа: {str(e)}"
+        error_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+        requests.post(error_url,
+                      data={'chat_id': settings.TELEGRAM_CHAT_ID, 'text': f"🚨 JARVIS: Ошибка бэкапа!\n{str(e)}"})
+
+    finally:
+        # 3. Уборка: удаляем временный архив
+        if os.path.exists(zip_filepath):
+            os.remove(zip_filepath)
+
+    return result_msg
+

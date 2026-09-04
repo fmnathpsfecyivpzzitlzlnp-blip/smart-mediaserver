@@ -1,5 +1,5 @@
 # mysite/settings.py
-
+from django.utils.translation import gettext_lazy as _
 from pathlib import Path
 import os
 
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # <--- ВАЖНО: Добавить сюда!
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -106,6 +107,22 @@ LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = os.environ.get('TIME_ZONE', 'Europe/Moscow')
 USE_I18N = True
 USE_TZ = True
+
+# Список доступных языков
+LANGUAGES = [
+    ('ru', _('Russian')),
+    ('en', _('English')),
+    ('ar', _('Arabic')),
+    ('de', _('German')),
+    ('zh-hans', _('Simplified Chinese')),
+    ('ja', _('Japanese')),
+    ('uk', _('Ukrainian')),
+]
+
+# Папка, где будут лежать словари переводов
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
 # ==============================================================================
 # СТАТИЧЕСКИЕ И МЕДИА ФАЙЛЫ

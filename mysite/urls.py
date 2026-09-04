@@ -16,6 +16,7 @@ urlpatterns = [
     # Это добавит URL'ы типа /accounts/login/, /accounts/logout/ и т.д.
     path('tinymce/', include('tinymce.urls')), # <--- ДОБАВИТЬ ЭТУ СТРОКУ
     path('accounts/', include('django.contrib.auth.urls')),
+    path('i18n/', include('django.conf.urls.i18n')),
     path('', include('blog.urls')),
 ]
 

@@ -13,13 +13,18 @@
 
     docker compose down
 
+
 🔄 Обновление кода (Деплой изменений)
 
     Изменился код Python (views.py, urls.py, задачи Celery):
     Быстрая перезагрузка контейнеров для применения нового кода.
     Bash
 
+
     docker compose restart web worker
+
+    Для загрузки статики
+    docker compose exec web python manage.py collectstatic --noinput
 
     Изменилась инфраструктура (Dockerfile, docker-compose.yml) или зависимости (requirements.txt):
     Требуется "тяжелая" команда для полной пересборки образов.
